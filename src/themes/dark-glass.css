@@ -6,26 +6,26 @@
 /* ---- Dark Design Tokens ---- */
 [data-theme="dark-glass"] {
   /* Surface & Glass */
-  --glass-bg: rgba(28, 28, 38, 0.55);
-  --glass-bg-hover: rgba(38, 38, 52, 0.65);
-  --glass-bg-active: rgba(48, 48, 62, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(32, 32, 50, 0.45);
+  --glass-bg-hover: rgba(44, 44, 66, 0.55);
+  --glass-bg-active: rgba(56, 56, 80, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
   --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --glass-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --glass-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
 
   /* Colors */
-  --color-bg: #0a0a10;
-  --color-surface: rgba(28, 28, 40, 0.6);
+  --color-bg: #10101c;
+  --color-surface: rgba(34, 34, 52, 0.55);
   --color-text: #f5f5f7;
-  --color-text-secondary: #8e8e93;
-  --color-primary: #7B8CDE;
-  --color-primary-light: rgba(123, 140, 222, 0.12);
-  --color-primary-glass: rgba(123, 140, 222, 0.18);
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-text-secondary: #b4b4c4;
+  --color-primary: #8B9CF0;
+  --color-primary-light: rgba(139, 156, 240, 0.16);
+  --color-primary-glass: rgba(139, 156, 240, 0.22);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
   --color-success: #30D158;
   --color-warning: #FFD60A;
   --color-danger: #FF453A;
@@ -36,14 +36,23 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* ---- Dark Ambient Background ---- */
+/* globals.css 的 body { color: var(--foreground) } 优先级更高，
+   会令继承文字在深色背景下呈近黑色，此处用更高优先级覆盖 */
+[data-theme="dark-glass"] body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ---- Dark Ambient Background ----
+   高亮度紫/蓝/粉光晕，衬托毛玻璃半透明质感 */
 [data-theme="dark-glass"] body::before {
-  background-color: #0a0a10;
+  background-color: #12121f;
   background-image:
-    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(88, 86, 214, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 85% 25%, rgba(30, 60, 140, 0.2) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 70% at 50% 85%, rgba(20, 80, 70, 0.15) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 70% 60%, rgba(80, 30, 60, 0.12) 0%, transparent 50%);
+    radial-gradient(ellipse 75% 55% at 12% 16%, rgba(147, 102, 255, 0.5) 0%, transparent 62%),
+    radial-gradient(ellipse 65% 50% at 88% 20%, rgba(64, 132, 255, 0.45) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 60% at 50% 90%, rgba(255, 82, 176, 0.35) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 45% at 78% 60%, rgba(96, 165, 250, 0.32) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 40% at 22% 68%, rgba(192, 132, 252, 0.34) 0%, transparent 52%);
 }
 
 /* ---- Dark Navigation ---- */
@@ -89,10 +98,10 @@
 }
 [data-theme="dark-glass"] .tb-btn-primary {
   background: var(--color-primary);
-  box-shadow: 0 1px 4px rgba(123, 140, 222, 0.3);
+  box-shadow: 0 1px 4px rgba(139, 156, 240, 0.3);
 }
 [data-theme="dark-glass"] .tb-btn-primary:hover {
-  box-shadow: 0 2px 8px rgba(123, 140, 222, 0.4);
+  box-shadow: 0 2px 8px rgba(139, 156, 240, 0.4);
 }
 
 /* ---- Dark Form Elements ---- */
@@ -113,7 +122,7 @@
   color: var(--color-text-secondary);
 }
 [data-theme="dark-glass"] .form-placeholder {
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* ---- Dark Settings Tabs ---- */
@@ -241,8 +250,8 @@
   color: #FF6B6B;
 }
 [data-theme="dark-glass"] .day-class-banner {
-  background: rgba(123, 140, 222, 0.12);
-  border-color: rgba(123, 140, 222, 0.2);
+  background: rgba(139, 156, 240, 0.12);
+  border-color: rgba(139, 156, 240, 0.2);
   color: var(--color-primary);
 }
 [data-theme="dark-glass"] .day-mark-btn {
@@ -264,12 +273,12 @@
   color: var(--color-text-secondary);
 }
 [data-theme="dark-glass"] .rb-chip {
-  background: rgba(123, 140, 222, 0.15);
-  border-color: rgba(123, 140, 222, 0.2);
+  background: rgba(139, 156, 240, 0.15);
+  border-color: rgba(139, 156, 240, 0.2);
   color: var(--color-primary);
 }
 [data-theme="dark-glass"] .rb-chip:hover {
-  background: rgba(123, 140, 222, 0.25);
+  background: rgba(139, 156, 240, 0.25);
 }
 
 [data-theme="dark-glass"] .week-grid {
@@ -300,7 +309,7 @@
   color: var(--color-danger);
 }
 [data-theme="dark-glass"] .wg-day-badge.badge-class {
-  background: rgba(123, 140, 222, 0.15);
+  background: rgba(139, 156, 240, 0.15);
   color: var(--color-primary);
 }
 [data-theme="dark-glass"] .wg-period-label {
@@ -315,8 +324,8 @@
   background: rgba(255, 255, 255, 0.03);
 }
 [data-theme="dark-glass"] .wg-cell.drag-over {
-  background: rgba(123, 140, 222, 0.1);
-  border-color: rgba(123, 140, 222, 0.3);
+  background: rgba(139, 156, 240, 0.1);
+  border-color: rgba(139, 156, 240, 0.3);
 }
 [data-theme="dark-glass"] .wg-cell.holiday-cell {
   background: rgba(255, 69, 58, 0.03);
@@ -337,7 +346,7 @@
 [data-theme="dark-glass"] .home-week {
   background: var(--color-primary-glass);
   color: var(--color-primary);
-  border-color: rgba(123, 140, 222, 0.2);
+  border-color: rgba(139, 156, 240, 0.2);
 }
 [data-theme="dark-glass"] .home-holiday-badge {
   background: rgba(255, 69, 58, 0.12);
@@ -364,9 +373,9 @@
   box-shadow: var(--glass-highlight), var(--glass-shadow-lg);
 }
 [data-theme="dark-glass"] .timeline-item.current {
-  border-color: rgba(123, 140, 222, 0.3);
+  border-color: rgba(139, 156, 240, 0.3);
   background: var(--color-primary-glass);
-  box-shadow: var(--glass-highlight), 0 0 0 1px rgba(123, 140, 222, 0.15), var(--glass-shadow);
+  box-shadow: var(--glass-highlight), 0 0 0 1px rgba(139, 156, 240, 0.15), var(--glass-shadow);
 }
 [data-theme="dark-glass"] .timeline-item.past {
   opacity: 0.35;
@@ -627,8 +636,8 @@
 
 /* ---- Dark Import Toast ---- */
 [data-theme="dark-glass"] .import-toast {
-  background: rgba(123, 140, 222, 0.15);
-  border-color: rgba(123, 140, 222, 0.25);
+  background: rgba(139, 156, 240, 0.15);
+  border-color: rgba(139, 156, 240, 0.25);
   color: var(--color-primary);
 }
 
@@ -650,7 +659,7 @@
 
 /* ---- Dark Selection ---- */
 [data-theme="dark-glass"] ::selection {
-  background: rgba(123, 140, 222, 0.3);
+  background: rgba(139, 156, 240, 0.3);
   color: #fff;
 }
 
