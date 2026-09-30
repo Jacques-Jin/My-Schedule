@@ -244,6 +244,75 @@ body {
 .view-btn.active { background: var(--color-primary); color: #fff; }
 .view-btn + .view-btn { border-left: 1px solid var(--color-border); }
 
+/* Toolbar actions */
+.toolbar-actions { display: flex; gap: 6px; align-items: center; }
+.tb-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all 0.15s;
+}
+.tb-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.tb-btn-primary { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.tb-btn-primary:hover { opacity: 0.9; color: #fff; }
+
+.import-toast {
+  background: var(--color-primary-light, #eef2ff);
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Course form */
+.course-form { display: flex; flex-direction: column; gap: 14px; }
+.cf-field { display: flex; flex-direction: column; gap: 4px; }
+.cf-label { font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); }
+.cf-field input, .cf-field select {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.cf-field input:focus, .cf-field select:focus { outline: none; border-color: var(--color-primary); }
+.cf-row { display: flex; gap: 10px; }
+.cf-half { flex: 1; }
+.cf-weekdays { display: flex; gap: 4px; flex-wrap: wrap; }
+.cf-wd-btn {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  transition: all 0.15s;
+}
+.cf-wd-btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.cf-error { color: var(--color-danger, #ef4444); font-size: 0.78rem; }
+.cf-save {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.cf-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.cf-save:hover:not(:disabled) { opacity: 0.9; }
+
 /* ---- Day View ---- */
 .day-view { }
 

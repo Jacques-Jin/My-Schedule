@@ -8,6 +8,8 @@ import WeekSwitcher from "../components/course/WeekSwitcher";
 import DayChips from "../components/course/DayChips";
 import CourseBlock from "../components/course/CourseBlock";
 import CourseDetailSheet from "../components/course/CourseDetailSheet";
+import CourseFormSheet from "../components/course/CourseFormSheet";
+import { parseScheduleXlsx } from "../lib/xlsx-import";
 
 type ViewMode = "day" | "week";
 
@@ -20,7 +22,7 @@ function getDefaultView(): ViewMode {
 const DAY_SHORT = ["一", "二", "三", "四", "五", "六", "日"];
 
 export default function SchedulePage() {
-  const { state, saveTask } = useStore();
+  const { state, saveTask, saveCourse } = useStore();
   const { semesters, holidays, courses, tasks, periodSlots, settings } = state;
 
   const currentSemester = semesters.find(s => s.is_current) || semesters[0];
@@ -32,6 +34,9 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { localStorage.setItem("schedule_view", view); }, [view]);
 
@@ -92,6 +97,27 @@ export default function SchedulePage() {
     await saveTask({ ...task, start_time: newStart, end_time: newEnd });
   }, [tasks, saveTask]);
 
+  const handleXlsxFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentSemester) return;
+    setImportMsg("解析中...");
+    try {
+      const buf = await file.arrayBuffer();
+      const parsed = parseScheduleXlsx(buf);
+      if (parsed.length === 0) { setImportMsg("未识别到课程，请检查文件格式"); return; }
+      setImportMsg(`识别到 ${parsed.length} 门课程，导入中...`);
+      for (const c of parsed) {
+        await saveCourse({ ...c, semester_id: currentSemester.id });
+      }
+      setImportMsg(`成功导入 ${parsed.length} 门课程`);
+      setTimeout(() => setImportMsg(""), 3000);
+    } catch (err: any) {
+      setImportMsg(`导入失败：${err.message}`);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [currentSemester, saveCourse]);
+
   if (!currentSemester) {
     return <div className="page"><p>暂无学期数据，请在设置中添加。</p></div>;
   }
@@ -118,7 +144,13 @@ export default function SchedulePage() {
           <button className={`view-btn ${view === "day" ? "active" : ""}`} onClick={() => setView("day")}>日</button>
           <button className={`view-btn ${view === "week" ? "active" : ""}`} onClick={() => setView("week")}>周</button>
         </div>
+        <div className="toolbar-actions">
+          <button className="tb-btn" onClick={() => fileInputRef.current?.click()} title="从 xlsx 导入课表">导入</button>
+          <button className="tb-btn tb-btn-primary" onClick={() => setFormOpen(true)} title="手动添加课程">+ 课程</button>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleXlsxFile} />
+        </div>
       </div>
+      {importMsg && <div className="import-toast">{importMsg}</div>}
 
       {view === "day" ? (
         <DayView
@@ -152,6 +184,13 @@ export default function SchedulePage() {
         semester={currentSemester}
         periodSlots={pSlots}
         currentWeek={week}
+      />
+
+      <CourseFormSheet
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        semesterId={currentSemester.id}
+        periodSlots={pSlots}
       />
     </div>
   );
