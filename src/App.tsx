@@ -8,7 +8,7 @@ import CampaignsPage from "./pages/CampaignsPage";
 import SettingsPage from "./pages/SettingsPage";
 import HomeworkPage from "./pages/HomeworkPage";
 import ReminderBanner from "./components/ReminderBanner";
-import { applyTheme } from "./themes/loader";
+import { applyTheme, getStoredTheme } from "./themes/loader";
 import "./styles.css";
 
 function getHashPage(): string {
@@ -37,9 +37,9 @@ function AppInner() {
 
   useEffect(() => {
     if (state.status === "ready") {
-      applyTheme(state.settings.theme);
+      applyTheme(getStoredTheme());
     }
-  }, [state.status, state.settings.theme]);
+  }, [state.status]);
 
   const Page = pages[page] || HomePage;
 

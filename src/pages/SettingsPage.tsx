@@ -3,7 +3,7 @@ import { useStore, type Semester, type Holiday, type PeriodSlot, type DayOverrid
 import ConfirmDialog from "../components/ConfirmDialog";
 import ThemeCard from "../components/settings/ThemeCard";
 import { THEMES } from "../themes/registry";
-import { applyTheme } from "../themes/loader";
+import { applyTheme, getStoredTheme } from "../themes/loader";
 
 export default function SettingsPage() {
   const { state, saveSemester, setCurrentSemester, deleteSemester, saveHoliday, deleteHoliday, savePeriods, saveSettings, exportData, importData, refresh } = useStore();
@@ -440,12 +440,13 @@ function DataSection() {
 }
 
 function AppearanceSection() {
-  const { state, saveSettings } = useStore();
-  const currentTheme = state.settings.theme;
+  const { saveSettings } = useStore();
+  const [currentTheme, setCurrentTheme] = useState(getStoredTheme);
 
   const handleSelect = async (themeId: string) => {
+    setCurrentTheme(themeId);
     applyTheme(themeId);
-    await saveSettings({ theme: themeId });
+    try { await saveSettings({ theme: themeId }); } catch { /* server may lack theme column */ }
   };
 
   return (
