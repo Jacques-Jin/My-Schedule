@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useStore, type Semester, type Holiday, type PeriodSlot } from "../store";
+import { useStore, type Semester, type Holiday, type PeriodSlot, type DayOverride } from "../store";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function SettingsPage() {
@@ -125,7 +125,7 @@ function SemesterSection() {
 }
 
 function HolidaySection() {
-  const { state, saveHoliday, deleteHoliday } = useStore();
+  const { state, saveHoliday, deleteHoliday, deleteDayOverride } = useStore();
   const [editing, setEditing] = useState<Holiday | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
@@ -201,7 +201,58 @@ function HolidaySection() {
       {confirm && (
         <ConfirmDialog open={true} title="删除节假日" onClose={() => setConfirm(null)} onConfirm={handleDelete}>确定删除「{confirm.name}」？</ConfirmDialog>
       )}
+
+      <OverrideList />
     </div>
+  );
+}
+
+function OverrideList() {
+  const { state, deleteDayOverride } = useStore();
+  const [confirm, setConfirm] = useState<{ id: string; label: string } | null>(null);
+  const sorted = [...state.dayOverrides].sort((a, b) => a.date.localeCompare(b.date));
+
+  const WEEKDAY_NAMES = ["", "一", "二", "三", "四", "五", "六", "日"];
+
+  const handleDelete = async () => {
+    if (!confirm) return;
+    await deleteDayOverride({ id: confirm.id });
+    setConfirm(null);
+  };
+
+  return (
+    <>
+      <div className="section-header" style={{ marginTop: 24 }}>
+        <h3>调休标记</h3>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="empty-state">暂无调休标记</div>
+      ) : (
+        <div className="settings-list">
+          {sorted.map(o => {
+            const kindLabel = o.kind === "holiday" ? "放假" : "补课";
+            const detail = o.kind === "classday" && o.follow_weekday
+              ? `按周${WEEKDAY_NAMES[o.follow_weekday]}课表`
+              : o.date;
+            return (
+              <div key={o.id} className="settings-list-item override-list-item">
+                <div className="sli-info">
+                  <span className="sli-name">{o.date}</span>
+                  <span className={`sli-kind ${o.kind}`}>{kindLabel}</span>
+                  <span className="sli-detail">{detail}{o.name ? ` · ${o.name}` : ""}</span>
+                </div>
+                <div className="sli-actions">
+                  <button className="btn-text danger btn-sm" onClick={() => setConfirm({ id: o.id, label: `${o.date} ${kindLabel}` })}>删除</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {confirm && (
+        <ConfirmDialog open={true} title="清除标记" onClose={() => setConfirm(null)} onConfirm={handleDelete}>确定清除「{confirm.label}」的标记？</ConfirmDialog>
+      )}
+    </>
   );
 }
 

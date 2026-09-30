@@ -27,6 +27,7 @@ function buildSeedTables() {
     task_completions: [],
     countdowns: [],
     homework: [],
+    day_overrides: [],
     settings: [{ id: 1, ...SEED.settings }],
   };
 }

@@ -20,6 +20,7 @@ export interface TaskCompletion { id: string; task_id: string; date: string }
 export interface Campaign { id: string; name: string; goal: string; deadline: string | null; color: string }
 export interface Countdown { id: string; name: string; target_date: string }
 export interface Homework { id: string; title: string; course_id: string; due_date: string | null; description: string; completed: boolean }
+export interface DayOverride { id: string; date: string; kind: "holiday" | "classday"; follow_weekday: number | null; name: string | null }
 export interface Settings { id: number; remind_minutes: number; overlay_repeat: boolean }
 
 interface State {
@@ -32,6 +33,7 @@ interface State {
   completions: TaskCompletion[];
   countdowns: Countdown[];
   homework: Homework[];
+  dayOverrides: DayOverride[];
   settings: Settings;
   status: "loading" | "ready" | "error";
 }
@@ -58,6 +60,8 @@ type Action =
   | { type: "remove_countdown"; id: string }
   | { type: "upsert_homework"; data: Homework }
   | { type: "remove_homework"; id: string }
+  | { type: "upsert_day_override"; data: DayOverride }
+  | { type: "remove_day_override"; id: string }
   | { type: "update_settings"; data: Settings };
 
 const defaultSettings: Settings = { id: 1, remind_minutes: 10, overlay_repeat: true };
@@ -123,6 +127,12 @@ function reducer(state: State, action: Action): State {
     }
     case "remove_homework":
       return { ...state, homework: state.homework.filter(h => h.id !== action.id) };
+    case "upsert_day_override": {
+      const others = state.dayOverrides.filter(o => o.date !== action.data.date);
+      return { ...state, dayOverrides: [...others, action.data] };
+    }
+    case "remove_day_override":
+      return { ...state, dayOverrides: state.dayOverrides.filter(o => o.id !== action.id) };
     case "update_settings":
       return { ...state, settings: action.data };
     default:
@@ -133,7 +143,7 @@ function reducer(state: State, action: Action): State {
 const initialState: State = {
   semesters: [], periodSlots: [], holidays: [], courses: [],
   campaigns: [], tasks: [], completions: [], countdowns: [], homework: [],
-  settings: defaultSettings, status: "loading",
+  dayOverrides: [], settings: defaultSettings, status: "loading",
 };
 
 interface StoreCtx {
@@ -160,6 +170,8 @@ interface StoreCtx {
   saveHomework: (data: any) => Promise<Homework>;
   deleteHomework: (id: string) => Promise<void>;
   completeHomework: (params: { id: string; completed: boolean }) => Promise<void>;
+  saveDayOverride: (data: any) => Promise<DayOverride>;
+  deleteDayOverride: (params: { id?: string; date?: string }) => Promise<void>;
   saveSettings: (data: any) => Promise<Settings>;
   exportData: () => Promise<any>;
   importData: (data: any) => Promise<void>;
@@ -325,6 +337,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await api.homeworkComplete(params); } catch { await refresh(); }
   }, [state.homework]);
 
+  const saveDayOverride = useCallback(async (data: any) => {
+    const row = await api.dayOverrideSave(data);
+    dispatch({ type: "upsert_day_override", data: row });
+    return row;
+  }, []);
+
+  const deleteDayOverride = useCallback(async (params: { id?: string; date?: string }) => {
+    if (params.id) {
+      dispatch({ type: "remove_day_override", id: params.id });
+    } else if (params.date) {
+      const existing = state.dayOverrides.find(o => o.date === params.date);
+      if (existing) dispatch({ type: "remove_day_override", id: existing.id });
+    }
+    try { await api.dayOverrideDelete(params); } catch { await refresh(); }
+  }, [state.dayOverrides]);
+
   const saveSettings = useCallback(async (data: any) => {
     const row = await api.settingsSave(data);
     dispatch({ type: "update_settings", data: row });
@@ -349,6 +377,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveTask, deleteTask, batchTasks, completeTask,
       saveCampaign, deleteCampaign, attachTasks,
       saveCountdown, deleteCountdown, saveHomework, deleteHomework, completeHomework, saveSettings,
+      saveDayOverride, deleteDayOverride,
       exportData, importData,
     }}>
       {children}

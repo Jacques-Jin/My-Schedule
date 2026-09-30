@@ -2,7 +2,8 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useStore, type Course, type Task } from "../store";
 import {
   formatDate, parseDate, datesOfWeek, weekIndexOf,
-  holidayOn, courseOccursOn, expandTaskOn, PERIOD_SLOTS,
+  resolveDayType, courseOccursOn, expandTaskOn, PERIOD_SLOTS,
+  type DayOverride, type DayType,
 } from "../lib/date";
 import WeekSwitcher from "../components/course/WeekSwitcher";
 import DayChips from "../components/course/DayChips";
@@ -10,6 +11,7 @@ import CourseBlock from "../components/course/CourseBlock";
 import CourseDetailSheet from "../components/course/CourseDetailSheet";
 import CourseFormSheet from "../components/course/CourseFormSheet";
 import TaskFormSheet from "../components/task/TaskFormSheet";
+import DayOverrideSheet from "../components/schedule/DayOverrideSheet";
 import { parseScheduleXlsx } from "../lib/xlsx-import";
 import { cellToTaskDraft, type TaskDraft } from "../lib/schedule-cell";
 
@@ -24,8 +26,8 @@ function getDefaultView(): ViewMode {
 const DAY_SHORT = ["一", "二", "三", "四", "五", "六", "日"];
 
 export default function SchedulePage() {
-  const { state, saveTask, saveCourse } = useStore();
-  const { semesters, holidays, courses, tasks, periodSlots, settings } = state;
+  const { state, saveTask, saveCourse, saveDayOverride, deleteDayOverride } = useStore();
+  const { semesters, holidays, courses, tasks, periodSlots, settings, dayOverrides } = state;
 
   const currentSemester = semesters.find(s => s.is_current) || semesters[0];
   const today = formatDate(new Date());
@@ -40,6 +42,9 @@ export default function SchedulePage() {
   const [importMsg, setImportMsg] = useState("");
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideDate, setOverrideDate] = useState(today);
+  const [overrideInitial, setOverrideInitial] = useState<DayOverride | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { localStorage.setItem("schedule_view", view); }, [view]);
@@ -73,22 +78,26 @@ export default function SchedulePage() {
 
   const getCoursesForDate = useCallback((dateStr: string) => {
     const date = parseDate(dateStr);
-    return semesterCourses.filter(c => courseOccursOn(c, date, currentSemester!));
-  }, [semesterCourses, currentSemester]);
+    const dayType = resolveDayType(dateStr, holidays, dayOverrides);
+    if (dayType.isHoliday) return [];
+    return semesterCourses.filter(c => courseOccursOn(c, date, currentSemester!, dayType.effectiveWeekday));
+  }, [semesterCourses, currentSemester, holidays, dayOverrides]);
 
-  const getHolidayForDate = useCallback((dateStr: string) => {
-    return holidayOn(parseDate(dateStr), holidays);
-  }, [holidays]);
+  const getDayTypeForDate = useCallback((dateStr: string) => {
+    return resolveDayType(dateStr, holidays, dayOverrides);
+  }, [holidays, dayOverrides]);
 
   const getRepeatTasksForDate = useCallback((dateStr: string) => {
     if (!settings.overlay_repeat || !currentSemester) return [];
+    const dayType = resolveDayType(dateStr, holidays, dayOverrides);
+    if (dayType.isHoliday) return [];
     const date = parseDate(dateStr);
     return tasks.filter(t => {
       const rule = JSON.parse(t.repeat_rule || '{"type":"none"}');
       if (rule.type === "none") return false;
       return expandTaskOn(t, date, currentSemester);
     });
-  }, [tasks, settings.overlay_repeat, currentSemester]);
+  }, [tasks, settings.overlay_repeat, currentSemester, holidays, dayOverrides]);
 
   const openCourseDetail = useCallback((course: Course) => {
     setDetailCourse(course);
@@ -107,6 +116,20 @@ export default function SchedulePage() {
     setTaskDraft(draft);
     setTaskFormOpen(true);
   }, [taskFormOpen]);
+
+  const openOverrideSheet = useCallback((dateStr: string) => {
+    setOverrideDate(dateStr);
+    setOverrideInitial(dayOverrides.find(o => o.date === dateStr) || null);
+    setOverrideOpen(true);
+  }, [dayOverrides]);
+
+  const handleOverrideSave = useCallback(async (data: any) => {
+    await saveDayOverride(data);
+  }, [saveDayOverride]);
+
+  const handleOverrideClear = useCallback(async () => {
+    await deleteDayOverride({ date: overrideDate });
+  }, [deleteDayOverride, overrideDate]);
 
   const handleXlsxFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,22 +193,24 @@ export default function SchedulePage() {
           onSelectDate={setSelectedDate}
           today={today}
           getCourses={getCoursesForDate}
-          getHoliday={getHolidayForDate}
+          getDayType={getDayTypeForDate}
           getRepeatTasks={getRepeatTasksForDate}
           periodSlots={pSlots}
           onCourseClick={openCourseDetail}
+          onMarkDay={openOverrideSheet}
         />
       ) : (
         <WeekView
           dates={weekDates}
           today={today}
           getCourses={getCoursesForDate}
-          getHoliday={getHolidayForDate}
+          getDayType={getDayTypeForDate}
           getRepeatTasks={getRepeatTasksForDate}
           periodSlots={pSlots}
           onCourseClick={openCourseDetail}
           onTaskTimeChange={handleTaskTimeChange}
           onCellClick={handleCellClick}
+          onDayHeaderClick={openOverrideSheet}
         />
       )}
 
@@ -213,24 +238,34 @@ export default function SchedulePage() {
         campaigns={state.campaigns}
         totalWeeks={currentSemester.total_weeks}
       />
+
+      <DayOverrideSheet
+        open={overrideOpen}
+        onClose={() => setOverrideOpen(false)}
+        onSave={handleOverrideSave}
+        onClear={handleOverrideClear}
+        initialData={overrideInitial}
+        defaultDate={overrideDate}
+      />
     </div>
   );
 }
 
 // ---- Day View ----
-function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getHoliday, getRepeatTasks, periodSlots, onCourseClick }: {
+function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getDayType, getRepeatTasks, periodSlots, onCourseClick, onMarkDay }: {
   dates: string[];
   selectedDate: string;
   onSelectDate: (d: string) => void;
   today: string;
   getCourses: (d: string) => Course[];
-  getHoliday: (d: string) => { name: string } | null;
+  getDayType: (d: string) => DayType;
   getRepeatTasks: (d: string) => Task[];
   periodSlots: { id: string; slot_no: number; start_time: string; end_time: string }[];
   onCourseClick: (c: Course) => void;
+  onMarkDay: (d: string) => void;
 }) {
   const dayCourses = getCourses(selectedDate);
-  const holiday = getHoliday(selectedDate);
+  const dayType = getDayType(selectedDate);
   const repeatTasks = getRepeatTasks(selectedDate);
 
   const morning = dayCourses.filter(c => c.start_period <= 5);
@@ -273,29 +308,41 @@ function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getHoli
   return (
     <div className="day-view">
       <DayChips dates={dates} selectedDate={selectedDate} onSelect={onSelectDate} today={today} />
-      {holiday && <div className="day-holiday-banner">{holiday.name}</div>}
-      {!holiday && (
+      {dayType.isHoliday && (
+        <div className="day-holiday-banner">
+          {dayType.label}
+          {dayType.source === "override" && <span className="day-override-tag">调休</span>}
+        </div>
+      )}
+      {!dayType.isHoliday && dayType.source === "override" && (
+        <div className="day-class-banner">
+          补课日{dayType.label ? `：${dayType.label}` : ""}
+        </div>
+      )}
+      {!dayType.isHoliday && (
         <div className="day-groups">
           {renderGroup("上午", morning)}
           {renderGroup("下午", afternoon)}
           {renderGroup("晚上", evening)}
         </div>
       )}
+      <button className="day-mark-btn" onClick={() => onMarkDay(selectedDate)}>标记这天</button>
     </div>
   );
 }
 
 // ---- Week View ----
-function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange, onCellClick }: {
+function WeekView({ dates, today, getCourses, getDayType, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange, onCellClick, onDayHeaderClick }: {
   dates: string[];
   today: string;
   getCourses: (d: string) => Course[];
-  getHoliday: (d: string) => { name: string } | null;
+  getDayType: (d: string) => DayType;
   getRepeatTasks: (d: string) => Task[];
   periodSlots: { id: string; slot_no: number; start_time: string; end_time: string }[];
   onCourseClick: (c: Course) => void;
   onTaskTimeChange: (taskId: string, newStart: string, newEnd: string) => Promise<void>;
   onCellClick: (dateStr: string, slot: { start_time: string; end_time: string }) => void;
+  onDayHeaderClick: (d: string) => void;
 }) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const dragTask = useRef<{ task: Task; durationMin: number } | null>(null);
@@ -331,11 +378,11 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
       <div className="routine-band">
         <div className="rb-label">日常</div>
         {dates.map((d, i) => {
-          const holiday = getHoliday(d);
-          const routines = holiday ? [] : getRepeatTasks(d);
+          const dayType = getDayType(d);
+          const routines = dayType.isHoliday ? [] : getRepeatTasks(d);
           const sorted = [...routines].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
           return (
-            <div key={d} className={`rb-day ${holiday ? "rb-holiday" : ""}`}>
+            <div key={d} className={`rb-day ${dayType.isHoliday ? "rb-holiday" : ""}`}>
               {sorted.map(t => (
                 <div
                   key={t.id}
@@ -358,14 +405,25 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
         {/* Header row */}
         <div className="wg-corner" />
         {dates.map((d, i) => {
-          const holiday = getHoliday(d);
+          const dayType = getDayType(d);
           const isToday = d === today;
           const dayNum = parseDate(d).getDate();
+          const headClass = [
+            "wg-day-head",
+            isToday ? "today" : "",
+            dayType.isHoliday ? "holiday" : "",
+            !dayType.isHoliday && dayType.source === "override" ? "override-class" : "",
+          ].filter(Boolean).join(" ");
           return (
-            <div key={d} className={`wg-day-head ${isToday ? "today" : ""} ${holiday ? "holiday" : ""}`}>
+            <div key={d} className={headClass} onClick={() => onDayHeaderClick(d)}>
               <span className="wg-day-name">周{DAY_SHORT[i]}</span>
               <span className="wg-day-num">{dayNum}</span>
-              {holiday && <span className="wg-day-fest">{holiday.name}</span>}
+              {dayType.isHoliday && <span className="wg-day-fest">{dayType.label}</span>}
+              {dayType.source === "override" && (
+                <span className={`wg-day-badge ${dayType.isHoliday ? "badge-holiday" : "badge-class"}`}>
+                  {dayType.isHoliday ? "休" : "补"}
+                </span>
+              )}
             </div>
           );
         })}
@@ -378,12 +436,12 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
               <span className="wg-ptime">{slot.start_time}</span>
             </div>
             {dates.map((d, colIdx) => {
-              const holiday = getHoliday(d);
+              const dayType = getDayType(d);
               const cellKey = `${d}-${slot.slot_no}`;
               return (
                 <div
                   key={`cell-${cellKey}`}
-                  className={`wg-cell ${holiday ? "holiday-cell" : ""} ${dragOverCell === cellKey ? "drag-over" : ""}`}
+                  className={`wg-cell ${dayType.isHoliday ? "holiday-cell" : ""} ${dragOverCell === cellKey ? "drag-over" : ""}`}
                   style={{ gridRow: slot.slot_no + 1, gridColumn: colIdx + 2 }}
                   onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCell(cellKey); }}
                   onDragLeave={() => setDragOverCell(prev => prev === cellKey ? null : prev)}
@@ -397,8 +455,8 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
 
         {/* Course blocks */}
         {dates.map((d, colIdx) => {
-          const holiday = getHoliday(d);
-          if (holiday) return null;
+          const dayType = getDayType(d);
+          if (dayType.isHoliday) return null;
           const dayCourses = getCourses(d);
           return dayCourses.map(c => (
             <CourseBlock

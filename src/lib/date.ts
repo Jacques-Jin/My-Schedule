@@ -16,6 +16,16 @@ export interface Task {
   done: boolean; campaign_id: string | null; note: string;
 }
 export interface TaskCompletion { id: string; task_id: string; date: string }
+export interface DayOverride {
+  id: string; date: string; kind: "holiday" | "classday";
+  follow_weekday: number | null; name: string | null;
+}
+export interface DayType {
+  isHoliday: boolean;
+  label: string;
+  effectiveWeekday: number;
+  source: "override" | "holiday" | "normal";
+}
 
 // Parse "YYYY-MM-DD" to Date (local)
 export function parseDate(s: string): Date {
@@ -70,6 +80,51 @@ export function holidayOn(date: Date, holidays: Holiday[]): Holiday | null {
   return holidays.find(h => ds >= h.start_date && ds <= h.end_date) || null;
 }
 
+// Find a day override for a specific date
+export function overrideOn(dateStr: string, overrides: DayOverride[]): DayOverride | null {
+  return overrides.find(o => o.date === dateStr) || null;
+}
+
+// Resolve the effective day type: override > holiday > normal
+// effectiveWeekday uses 1=Mon … 7=Sun (matches Course.weekday)
+export function resolveDayType(dateStr: string, holidays: Holiday[], overrides: DayOverride[]): DayType {
+  const date = parseDate(dateStr);
+  const dow = date.getDay();
+  const realWeekday = dow === 0 ? 7 : dow;
+  const override = overrideOn(dateStr, overrides);
+  if (override) {
+    if (override.kind === "holiday") {
+      return {
+        isHoliday: true,
+        label: override.name || "放假",
+        effectiveWeekday: realWeekday,
+        source: "override",
+      };
+    }
+    return {
+      isHoliday: false,
+      label: override.name || "",
+      effectiveWeekday: override.follow_weekday || realWeekday,
+      source: "override",
+    };
+  }
+  const holiday = holidayOn(date, holidays);
+  if (holiday) {
+    return {
+      isHoliday: true,
+      label: holiday.name,
+      effectiveWeekday: realWeekday,
+      source: "holiday",
+    };
+  }
+  return {
+    isHoliday: false,
+    label: "",
+    effectiveWeekday: realWeekday,
+    source: "normal",
+  };
+}
+
 // Parse week_rule JSON: {"ranges":[[2,17]],"parity":null|"odd"|"even"}
 interface WeekRule { ranges: [number, number][]; parity: null | "odd" | "even" }
 function parseWeekRule(json: string): WeekRule {
@@ -77,11 +132,12 @@ function parseWeekRule(json: string): WeekRule {
 }
 
 // Check if a course occurs on a given date
-export function courseOccursOn(course: Course, date: Date, semester: Semester): boolean {
+// effectiveWeekday (1-7, Mon-Sun) overrides the real weekday of date; week is always from real date
+export function courseOccursOn(course: Course, date: Date, semester: Semester, effectiveWeekday?: number): boolean {
   const week = weekIndexOf(date, semester);
   if (week < 1) return false;
   const dow = date.getDay(); // 0=Sun, 1=Mon...
-  const weekday = dow === 0 ? 7 : dow;
+  const weekday = effectiveWeekday ?? (dow === 0 ? 7 : dow);
   if (weekday !== course.weekday) return false;
   const rule = parseWeekRule(course.week_rule);
   if (!rule.ranges.some(([lo, hi]) => week >= lo && week <= hi)) return false;
@@ -138,6 +194,8 @@ export function taskDoneOn(task: Task, date: string, completions: TaskCompletion
 }
 
 // Find the next upcoming class from now
+// NOTE: does NOT consult day_overrides; callers that need override-aware results
+// should compute the next class themselves using resolveDayType + courseOccursOn.
 export function nextClassFrom(now: Date, courses: Course[], semester: Semester, holidays: Holiday[]): { course: Course; date: string; time: string } | null {
   const todayStr = formatDate(now);
   for (let d = 0; d < 14; d++) {

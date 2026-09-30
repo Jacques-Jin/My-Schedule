@@ -47,6 +47,16 @@ function validateComplete(p) {
   return null;
 }
 
+function validateDayOverride(p) {
+  if (!p.date || !/^\d{4}-\d{2}-\d{2}$/.test(p.date)) return "invalid_date";
+  if (p.kind !== "holiday" && p.kind !== "classday") return "invalid_kind";
+  if (p.follow_weekday !== undefined && p.follow_weekday !== null) {
+    if (typeof p.follow_weekday !== "number" || p.follow_weekday < 1 || p.follow_weekday > 7) return "invalid_follow_weekday";
+  }
+  if (p.name !== undefined && p.name !== null && typeof p.name === "string" && p.name.length > 30) return "invalid_name";
+  return null;
+}
+
 // Pick only whitelisted fields from obj
 function pick(obj, fields) {
   const result = {};
@@ -157,6 +167,7 @@ const actions = {
       ["task_completions", "id,task_id,date"],
       ["countdowns", "id,name,target_date"],
       ["homework", "id,title,course_id,due_date,description,completed,created_at"],
+      ["day_overrides", "id,date,kind,follow_weekday,name,created_at"],
       ["settings", "id,remind_minutes,overlay_repeat"],
     ];
     const result = {};
@@ -176,6 +187,7 @@ const actions = {
       completions: result.task_completions,
       countdowns: result.countdowns,
       homework: result.homework,
+      dayOverrides: result.day_overrides,
       settings: settingsRow,
     };
   },
@@ -429,6 +441,47 @@ const actions = {
     return { deleted: true };
   },
 
+  "dayOverride.save": async ({ supabase, payload }) => {
+    const err = validateDayOverride(payload);
+    if (err) throw new Error(err);
+    const fields = ["date", "kind", "follow_weekday", "name"];
+    const data = pick(payload, fields);
+    data.follow_weekday = data.follow_weekday ?? null;
+    data.name = data.name ?? null;
+    if (data.kind === "holiday") data.follow_weekday = null;
+
+    const { data: existing } = await supabase.from("day_overrides").select("id").eq("date", data.date).maybeSingle();
+    if (existing && (!payload.id || existing.id !== payload.id)) {
+      const { data: row, error } = await supabase.from("day_overrides").update(data).eq("id", existing.id).select("*").single();
+      if (error) throw new Error("day_override_update_failed");
+      return row;
+    }
+
+    if (payload.id) {
+      const { data: row, error } = await supabase.from("day_overrides").update(data).eq("id", payload.id).select("*").single();
+      if (error) throw new Error("day_override_update_failed");
+      return row;
+    }
+    const { data: row, error } = await supabase.from("day_overrides")
+      .insert({ ...data, created_at: new Date().toISOString() })
+      .select("*").single();
+    if (error) throw new Error("day_override_insert_failed");
+    return row;
+  },
+
+  "dayOverride.delete": async ({ supabase, payload }) => {
+    if (payload.id) {
+      const { error } = await supabase.from("day_overrides").delete().eq("id", payload.id);
+      if (error) throw new Error("day_override_delete_failed");
+    } else if (payload.date) {
+      const { error } = await supabase.from("day_overrides").delete().eq("date", payload.date);
+      if (error) throw new Error("day_override_delete_failed");
+    } else {
+      throw new Error("missing_id_or_date");
+    }
+    return { deleted: true };
+  },
+
   "settings.save": async ({ supabase, payload }) => {
     const fields = ["remind_minutes", "overlay_repeat"];
     const data = pick(payload, fields);
@@ -442,7 +495,7 @@ const actions = {
   },
 
   "data.export": async ({ supabase }) => {
-    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "homework", "settings"];
+    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "homework", "day_overrides", "settings"];
     const result = {};
     for (const table of tables) {
       const { data, error } = await supabase.from(table).select("*").limit(10000);
@@ -460,13 +513,13 @@ const actions = {
       return rest;
     };
 
-    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "homework", "settings"];
+    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "homework", "day_overrides", "settings"];
     for (const table of tables) {
       const { error } = await supabase.from(table).delete().not("id", "is", null);
       if (error) throw new Error(`clear ${table}: ${error.message}`);
     }
 
-    const CREATED_AT_TABLES = new Set(["semesters", "campaigns", "tasks", "homework"]);
+    const CREATED_AT_TABLES = new Set(["semesters", "campaigns", "tasks", "homework", "day_overrides"]);
     const prep = (row, table) => {
       const clean = strip(row);
       clean.id = row.id || crypto.randomUUID();
@@ -537,6 +590,15 @@ const actions = {
     }
 
     await buildMap("countdowns");
+
+    const dayOverrideRows = payload.day_overrides;
+    if (Array.isArray(dayOverrideRows) && dayOverrideRows.length > 0) {
+      for (const row of dayOverrideRows) {
+        const clean = prep(row, "day_overrides");
+        const { error } = await supabase.from("day_overrides").insert(clean);
+        if (error) throw new Error(`insert day_overrides: ${error.message}`);
+      }
+    }
 
     const homeworkRows = payload.homework;
     if (Array.isArray(homeworkRows) && homeworkRows.length > 0) {

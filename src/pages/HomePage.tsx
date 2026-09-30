@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useStore, type Course, type Task } from "../store";
 import {
-  formatDate, parseDate, weekIndexOf, courseOccursOn,
-  expandTaskOn, taskDoneOn, holidayOn, PERIOD_SLOTS,
+  formatDate, parseDate, weekIndexOf, resolveDayType, courseOccursOn,
+  expandTaskOn, taskDoneOn, PERIOD_SLOTS,
 } from "../lib/date";
 import TimelineItem from "../components/home/TimelineItem";
 import FocusCard from "../components/home/FocusCard";
@@ -30,7 +30,7 @@ export default function HomePage() {
   const today = new Date();
   const todayStr = formatDate(today);
   const semester = state.semesters.find(s => s.is_current);
-  const holiday = semester ? holidayOn(today, state.holidays) : null;
+  const dayType = semester ? resolveDayType(todayStr, state.holidays, state.dayOverrides) : { isHoliday: false, label: "", effectiveWeekday: today.getDay() || 7, source: "normal" as const };
   const week = semester ? weekIndexOf(today, semester) : 0;
 
   const todayTasks = useMemo(() => {
@@ -58,7 +58,7 @@ export default function HomePage() {
     if (!semester) return [];
     const entries: TimelineEntry[] = [];
 
-    const todayCourses = state.courses.filter(c => courseOccursOn(c, today, semester));
+    const todayCourses = dayType.isHoliday ? [] : state.courses.filter(c => courseOccursOn(c, today, semester, dayType.effectiveWeekday));
     for (const c of todayCourses) {
       const slot = PERIOD_SLOTS.find(s => s.slot_no === c.start_period);
       const endSlot = PERIOD_SLOTS.find(s => s.slot_no === c.end_period);
@@ -107,14 +107,14 @@ export default function HomePage() {
 
     entries.sort((a, b) => a.startTime.localeCompare(b.startTime));
     return entries;
-  }, [state.courses, state.tasks, state.completions, state.settings.overlay_repeat, semester, todayStr]);
+  }, [state.courses, state.tasks, state.completions, state.settings.overlay_repeat, semester, todayStr, dayType]);
 
   const nowTime = `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`;
 
   const nextClass = useMemo(() => {
     if (!semester) return null;
-    const todayCourses = state.courses
-      .filter(c => courseOccursOn(c, today, semester))
+    const todayCourses = dayType.isHoliday ? [] : state.courses
+      .filter(c => courseOccursOn(c, today, semester, dayType.effectiveWeekday))
       .sort((a, b) => a.start_period - b.start_period);
 
     for (const c of todayCourses) {
@@ -127,7 +127,7 @@ export default function HomePage() {
       }
     }
     return null;
-  }, [state.courses, semester, nowTime]);
+  }, [state.courses, semester, nowTime, dayType]);
 
   const currentWeek = semester ? weekIndexOf(today, semester) : 1;
 
@@ -157,7 +157,7 @@ export default function HomePage() {
       <div className="home-header">
         <div className="home-date">{dateStr}</div>
         {week > 0 && <div className="home-week">第{week}周</div>}
-        {holiday && <div className="home-holiday-badge">{holiday.name}</div>}
+        {dayType.isHoliday && <div className="home-holiday-badge">{dayType.label}</div>}
       </div>
 
       <div className="home-layout">

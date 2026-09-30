@@ -1,53 +1,70 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
-echo   我的日程 - 启动器
+echo   My Schedule - Startup Launcher
 echo ========================================
 echo.
 
-REM 设置路径
+REM Tool paths
 set DENO_PATH=C:\Users\Jack\.qoder-cn\bin\deno\deno.exe
 set NODE_PATH=C:\Users\Jack\.qoder-cn\bin\node\node.exe
 
-REM 检查 Deno
+REM Check Deno
 if not exist "%DENO_PATH%" (
-    echo [错误] 未找到 Deno: %DENO_PATH%
+    echo [ERROR] Deno not found: %DENO_PATH%
     pause
     exit /b 1
 )
 
-REM 检查 Node.js
+REM Check Node.js
 if not exist "%NODE_PATH%" (
-    echo [错误] 未找到 Node.js: %NODE_PATH%
+    echo [ERROR] Node.js not found: %NODE_PATH%
     pause
     exit /b 1
 )
 
-echo [1/3] 启动本地 API 服务器 (Deno)...
-start "我的日程-API" /min "%DENO_PATH%" run --allow-net --allow-env functions/local-dev-index.ts
+REM Guard: refuse to start if a server is already running.
+REM A stale server would keep serving old data and cause a blank page.
+netstat -ano | findstr ":8000 " | findstr LISTENING >nul
+if not errorlevel 1 (
+    echo [ERROR] Port 8000 is already in use by a running server.
+    echo         Run stop.bat ^(鍋滄.bat^) first, then start again.
+    pause
+    exit /b 1
+)
+netstat -ano | findstr ":5173 " | findstr LISTENING >nul
+if not errorlevel 1 (
+    echo [ERROR] Port 5173 is already in use by a running server.
+    echo         Run stop.bat ^(鍋滄.bat^) first, then start again.
+    pause
+    exit /b 1
+)
 
-REM 等待 Deno 服务器启动
-timeout /t 3 /nobreak >/dev/null
+echo [1/3] Starting API server (Deno)...
+start "MySchedule-API" /min "%DENO_PATH%" run --allow-net --allow-env --allow-read functions/local-dev-index.ts
 
-echo [2/3] 启动前端开发服务器 (Vite)...
-start "我的日程-Vite" /min "%NODE_PATH%" node_modules/vite/bin/vite.js --host 127.0.0.1
+REM Wait for Deno to start
+timeout /t 3 /nobreak >nul
 
-REM 等待 Vite 服务器启动
-timeout /t 4 /nobreak >/dev/null
+echo [2/3] Starting frontend dev server (Vite)...
+start "MySchedule-Vite" /min "%NODE_PATH%" node_modules/vite/bin/vite.js --host 127.0.0.1
 
-echo [3/3] 打开浏览器...
+REM Wait for Vite to start
+timeout /t 4 /nobreak >nul
+
+echo [3/3] Opening browser...
 start http://127.0.0.1:5173/
 
 echo.
 echo ========================================
-echo   启动完成！
+echo   All started!
 echo ========================================
 echo.
-echo API 服务器：http://localhost:8000/
-echo 前端应用：  http://127.0.0.1:5173/
+echo API server:   http://localhost:8000/
+echo Frontend:     http://127.0.0.1:5173/
 echo.
-echo 提示：
-echo - 两个服务器窗口已最小化到任务栏
-echo - 关闭服务器：点击任务栏图标，按 Ctrl+C
-echo - 重启程序：关闭所有窗口后重新运行此脚本
+echo Tips:
+echo - Servers run in minimized windows
+echo - To stop: close server windows or run stop.bat
 echo.
 pause

@@ -1,27 +1,28 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
-echo   我的日程 - 停止服务器
+echo   My Schedule - Stop Launcher
 echo ========================================
 echo.
 
-echo 正在查找并停止服务器进程...
+echo Finding and stopping servers...
 echo.
 
-REM 查找并停止 Deno 进程
+REM Find and stop Deno server (port 8000)
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do (
-    echo [停止] Deno 服务器 (PID: %%a)
-    taskkill /F /PID %%a >/dev/null 2>/dev/null
+    echo [STOP] Deno server (PID: %%a)
+    taskkill /F /PID %%a >nul 2>nul
 )
 
-REM 查找并停止 Vite 进程 (默认端口 5173)
+REM Find and stop Vite server (port 5173)
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do (
-    echo [停止] Vite 服务器 (PID: %%a)
-    taskkill /F /PID %%a >/dev/null 2>/dev/null
+    echo [STOP] Vite server (PID: %%a)
+    taskkill /F /PID %%a >nul 2>nul
 )
 
 echo.
 echo ========================================
-echo   服务器已停止
+echo   All servers stopped
 echo ========================================
 echo.
 pause
