@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="个人日程管理系统" />
     <title>我的日程</title>
+    <script>
+      (function() {
+        var t = localStorage.getItem('app-theme');
+        if (t && t !== 'default') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

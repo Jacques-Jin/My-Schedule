@@ -21,7 +21,7 @@ export interface Campaign { id: string; name: string; goal: string; deadline: st
 export interface Countdown { id: string; name: string; target_date: string }
 export interface Homework { id: string; title: string; course_id: string; due_date: string | null; description: string; completed: boolean }
 export interface DayOverride { id: string; date: string; kind: "holiday" | "classday"; follow_weekday: number | null; name: string | null }
-export interface Settings { id: number; remind_minutes: number; overlay_repeat: boolean }
+export interface Settings { id: number; remind_minutes: number; overlay_repeat: boolean; theme: string }
 
 interface State {
   semesters: Semester[];
@@ -64,7 +64,7 @@ type Action =
   | { type: "remove_day_override"; id: string }
   | { type: "update_settings"; data: Settings };
 
-const defaultSettings: Settings = { id: 1, remind_minutes: 10, overlay_repeat: true };
+const defaultSettings: Settings = { id: 1, remind_minutes: 10, overlay_repeat: true, theme: "default" };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {

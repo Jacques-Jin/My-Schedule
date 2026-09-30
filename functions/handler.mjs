@@ -124,7 +124,7 @@ export const SEED = {
     { title: "午饭", date: "2026-09-07", start_time: "12:20", end_time: "12:45", category: "生活", priority: "中", repeat_rule: '{"type":"daily"}', reminder: "none", done: false, note: "" },
     { title: "午休", date: "2026-09-07", start_time: "12:50", end_time: "13:30", category: "生活", priority: "中", repeat_rule: '{"type":"daily"}', reminder: "none", done: false, note: "" },
   ],
-  settings: { remind_minutes: 10, overlay_repeat: true },
+  settings: { remind_minutes: 10, overlay_repeat: true, theme: "default" },
 };
 
 async function seedIfEmpty(supabase) {
@@ -177,6 +177,7 @@ const actions = {
       result[table] = data || [];
     }
     const settingsRow = result.settings[0] || { id: 1, remind_minutes: 10, overlay_repeat: true };
+    if (settingsRow.theme === undefined) settingsRow.theme = "default";
     return {
       semesters: result.semesters,
       periodSlots: result.period_slots,
@@ -491,6 +492,7 @@ const actions = {
       if (e2) throw new Error("settings_save_failed");
       return inserted;
     }
+    if (row.theme === undefined) row.theme = payload.theme || "default";
     return row;
   },
 

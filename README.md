@@ -1,5 +1,7 @@
 # My Schedule - 我的日程
 
+> **Runtime v31** · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言
+
 个人日程管理应用，支持课表导入、战役计划、调休标记等功能。
 
 **线上版本**: https://my-schedule-akzzfsdx3vh.qoder.zone/

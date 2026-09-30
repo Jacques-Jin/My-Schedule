@@ -1,16 +1,20 @@
 import { useState, useRef } from "react";
 import { useStore, type Semester, type Holiday, type PeriodSlot, type DayOverride } from "../store";
 import ConfirmDialog from "../components/ConfirmDialog";
+import ThemeCard from "../components/settings/ThemeCard";
+import { THEMES } from "../themes/registry";
+import { applyTheme } from "../themes/loader";
 
 export default function SettingsPage() {
   const { state, saveSemester, setCurrentSemester, deleteSemester, saveHoliday, deleteHoliday, savePeriods, saveSettings, exportData, importData, refresh } = useStore();
-  const [section, setSection] = useState<"semester" | "holiday" | "period" | "reminder" | "data">("semester");
+  const [section, setSection] = useState<"semester" | "holiday" | "period" | "reminder" | "appearance" | "data">("semester");
 
   const sections = [
     { key: "semester" as const, label: "学期管理" },
     { key: "holiday" as const, label: "校历节假日" },
     { key: "period" as const, label: "作息时间表" },
     { key: "reminder" as const, label: "提醒设置" },
+    { key: "appearance" as const, label: "外观" },
     { key: "data" as const, label: "数据备份" },
   ];
 
@@ -27,6 +31,7 @@ export default function SettingsPage() {
         {section === "holiday" && <HolidaySection />}
         {section === "period" && <PeriodSection />}
         {section === "reminder" && <ReminderSection />}
+        {section === "appearance" && <AppearanceSection />}
         {section === "data" && <DataSection />}
       </div>
     </div>
@@ -430,6 +435,32 @@ function DataSection() {
         </div>
       </div>
       {message && <p className="data-message">{message}</p>}
+    </div>
+  );
+}
+
+function AppearanceSection() {
+  const { state, saveSettings } = useStore();
+  const currentTheme = state.settings.theme;
+
+  const handleSelect = async (themeId: string) => {
+    applyTheme(themeId);
+    await saveSettings({ theme: themeId });
+  };
+
+  return (
+    <div className="settings-section">
+      <h3>外观主题</h3>
+      <div className="settings-theme-grid">
+        {THEMES.map(theme => (
+          <ThemeCard
+            key={theme.id}
+            theme={theme}
+            active={currentTheme === theme.id}
+            onSelect={handleSelect}
+          />
+        ))}
+      </div>
     </div>
   );
 }
