@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useStore, type Course, type Task } from "../store";
 import {
   formatDate, parseDate, datesOfWeek, weekIndexOf,
@@ -20,7 +20,7 @@ function getDefaultView(): ViewMode {
 const DAY_SHORT = ["一", "二", "三", "四", "五", "六", "日"];
 
 export default function SchedulePage() {
-  const { state } = useStore();
+  const { state, saveTask } = useStore();
   const { semesters, holidays, courses, tasks, periodSlots, settings } = state;
 
   const currentSemester = semesters.find(s => s.is_current) || semesters[0];
@@ -86,6 +86,12 @@ export default function SchedulePage() {
     setDetailOpen(true);
   }, []);
 
+  const handleTaskTimeChange = useCallback(async (taskId: string, newStart: string, newEnd: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    await saveTask({ ...task, start_time: newStart, end_time: newEnd });
+  }, [tasks, saveTask]);
+
   if (!currentSemester) {
     return <div className="page"><p>暂无学期数据，请在设置中添加。</p></div>;
   }
@@ -135,6 +141,7 @@ export default function SchedulePage() {
           getRepeatTasks={getRepeatTasksForDate}
           periodSlots={pSlots}
           onCourseClick={openCourseDetail}
+          onTaskTimeChange={handleTaskTimeChange}
         />
       )}
 
@@ -219,7 +226,7 @@ function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getHoli
 }
 
 // ---- Week View ----
-function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, periodSlots, onCourseClick }: {
+function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange }: {
   dates: string[];
   today: string;
   getCourses: (d: string) => Course[];
@@ -227,9 +234,64 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
   getRepeatTasks: (d: string) => Task[];
   periodSlots: { id: string; slot_no: number; start_time: string; end_time: string }[];
   onCourseClick: (c: Course) => void;
+  onTaskTimeChange: (taskId: string, newStart: string, newEnd: string) => Promise<void>;
 }) {
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+  const dragTask = useRef<{ task: Task; durationMin: number } | null>(null);
+
+  const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
+    const start = task.start_time || "08:00";
+    const end = task.end_time || "08:30";
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    const durationMin = (eh * 60 + em) - (sh * 60 + sm) || 30;
+    dragTask.current = { task, durationMin };
+    e.dataTransfer.setData("text/plain", task.id);
+    e.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, slot: { slot_no: number; start_time: string }) => {
+    e.preventDefault();
+    setDragOverCell(null);
+    const data = dragTask.current;
+    if (!data) return;
+    const [h, m] = slot.start_time.split(":").map(Number);
+    const startMin = h * 60 + m;
+    const endMin = startMin + data.durationMin;
+    const newStart = `${String(Math.floor(startMin / 60)).padStart(2, "0")}:${String(startMin % 60).padStart(2, "0")}`;
+    const newEnd = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+    onTaskTimeChange(data.task.id, newStart, newEnd);
+    dragTask.current = null;
+  }, [onTaskTimeChange]);
+
   return (
     <div className="week-view">
+      {/* Routine band */}
+      <div className="routine-band">
+        <div className="rb-label">日常</div>
+        {dates.map((d, i) => {
+          const holiday = getHoliday(d);
+          const routines = holiday ? [] : getRepeatTasks(d);
+          const sorted = [...routines].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+          return (
+            <div key={d} className={`rb-day ${holiday ? "rb-holiday" : ""}`}>
+              {sorted.map(t => (
+                <div
+                  key={t.id}
+                  className="rb-chip"
+                  draggable
+                  onDragStart={e => handleDragStart(e, t)}
+                  title={`${t.title}${t.start_time ? ` ${t.start_time}-${t.end_time}` : ""}`}
+                >
+                  {t.start_time && <span className="rb-chip-time">{t.start_time}</span>}
+                  {t.title}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
       <div className="week-grid">
         {/* Header row */}
         <div className="wg-corner" />
@@ -255,11 +317,15 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
             </div>
             {dates.map((d, colIdx) => {
               const holiday = getHoliday(d);
+              const cellKey = `${d}-${slot.slot_no}`;
               return (
                 <div
-                  key={`cell-${d}-${slot.slot_no}`}
-                  className={`wg-cell ${holiday ? "holiday-cell" : ""}`}
+                  key={`cell-${cellKey}`}
+                  className={`wg-cell ${holiday ? "holiday-cell" : ""} ${dragOverCell === cellKey ? "drag-over" : ""}`}
                   style={{ gridRow: slot.slot_no + 1, gridColumn: colIdx + 2 }}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCell(cellKey); }}
+                  onDragLeave={() => setDragOverCell(prev => prev === cellKey ? null : prev)}
+                  onDrop={e => handleDrop(e, slot)}
                 />
               );
             })}
@@ -282,23 +348,6 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
               gridColumn={colIdx + 2}
               rowSpan={c.end_period - c.start_period + 1}
             />
-          ));
-        })}
-
-        {/* Repeat task overlays */}
-        {dates.map((d, colIdx) => {
-          const holiday = getHoliday(d);
-          if (holiday) return null;
-          const repeatTasks = getRepeatTasks(d);
-          return repeatTasks.map(t => (
-            <div
-              key={`rt-${t.id}-${d}`}
-              className="wg-repeat-task"
-              style={{ gridRow: 2, gridColumn: colIdx + 2 }}
-              title={t.title}
-            >
-              {t.title}
-            </div>
           ));
         })}
       </div>
