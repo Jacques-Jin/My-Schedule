@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { COURSE_COLORS } from "./colors";
 
 export interface ParsedCourse {
   name: string;
@@ -91,11 +92,7 @@ function parseTeacherLine(raw: string): { teachers: string[]; ranges: [number, n
   return { teachers, ranges: mergeRanges(allRanges) };
 }
 
-const COLORS = [
-  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#84cc16", "#f97316", "#ec4899", "#6366f1",
-  "#14b8a6", "#a855f7", "#78716c", "#0ea5e9", "#d946ef",
-];
+const COLORS = COURSE_COLORS;
 
 function colorForName(name: string): string {
   let hash = 0;

@@ -60,7 +60,7 @@ export default function CourseFormSheet({ open, onClose, semesterId, periodSlots
           end_period: endPeriod,
           week_rule,
           location: location.trim(),
-          color: "#3b82f6",
+          color: "#4A6FA5",
           note: "",
         });
       }

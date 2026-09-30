@@ -1,0 +1,660 @@
+/* ============================================================
+   My Schedule — Dark Liquid Glass Theme
+   Sophisticated dark palette with premium course colors
+   ============================================================ */
+
+/* ---- Dark Design Tokens ---- */
+[data-theme="dark-glass"] {
+  /* Surface & Glass */
+  --glass-bg: rgba(28, 28, 38, 0.55);
+  --glass-bg-hover: rgba(38, 38, 52, 0.65);
+  --glass-bg-active: rgba(48, 48, 62, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+  --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+
+  /* Colors */
+  --color-bg: #0a0a10;
+  --color-surface: rgba(28, 28, 40, 0.6);
+  --color-text: #f5f5f7;
+  --color-text-secondary: #8e8e93;
+  --color-primary: #7B8CDE;
+  --color-primary-light: rgba(123, 140, 222, 0.12);
+  --color-primary-glass: rgba(123, 140, 222, 0.18);
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-success: #30D158;
+  --color-warning: #FFD60A;
+  --color-danger: #FF453A;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Dark Ambient Background ---- */
+[data-theme="dark-glass"] body::before {
+  background-color: #0a0a10;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(88, 86, 214, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% 25%, rgba(30, 60, 140, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 70% at 50% 85%, rgba(20, 80, 70, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 70% 60%, rgba(80, 30, 60, 0.12) 0%, transparent 50%);
+}
+
+/* ---- Dark Navigation ---- */
+[data-theme="dark-glass"] .nav-tabs {
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark-glass"] .nav-tab:hover { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark-glass"] .nav-tab.active {
+  box-shadow: var(--glass-highlight), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Dark Sheet ---- */
+[data-theme="dark-glass"] .sheet-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark-glass"] .sheet-panel {
+  background: rgba(22, 22, 32, 0.82);
+  box-shadow: var(--glass-highlight), 0 -8px 40px rgba(0, 0, 0, 0.4);
+}
+[data-theme="dark-glass"] .sheet-close {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .sheet-close:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* ---- Dark Confirm Dialog ---- */
+[data-theme="dark-glass"] .confirm-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark-glass"] .confirm-dialog {
+  background: rgba(22, 22, 32, 0.85);
+  box-shadow: var(--glass-highlight), var(--shadow-lg);
+}
+
+/* ---- Dark Buttons ---- */
+[data-theme="dark-glass"] .tb-btn {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .tb-btn:hover {
+  background: var(--glass-bg-hover);
+}
+[data-theme="dark-glass"] .tb-btn-primary {
+  background: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(123, 140, 222, 0.3);
+}
+[data-theme="dark-glass"] .tb-btn-primary:hover {
+  box-shadow: 0 2px 8px rgba(123, 140, 222, 0.4);
+}
+
+/* ---- Dark Form Elements ---- */
+[data-theme="dark-glass"] .form-input,
+[data-theme="dark-glass"] .form-select,
+[data-theme="dark-glass"] .form-textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .form-input:focus,
+[data-theme="dark-glass"] .form-select:focus,
+[data-theme="dark-glass"] .form-textarea:focus {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .form-label {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .form-placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ---- Dark Settings Tabs ---- */
+[data-theme="dark-glass"] .settings-tabs {
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark-glass"] .settings-tab {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .settings-tab:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .settings-tab.active {
+  background: var(--glass-bg);
+  color: var(--color-text);
+  box-shadow: var(--glass-highlight), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Dark Theme Cards ---- */
+[data-theme="dark-glass"] .settings-theme-card {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .settings-theme-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark-glass"] .settings-theme-card.active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--glass-shadow);
+}
+[data-theme="dark-glass"] .stc-preview {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark-glass"] .stc-preview-bar {
+  background: linear-gradient(90deg, #1a1a2e, #2d2d44);
+}
+[data-theme="dark-glass"] .stc-preview-line {
+  background: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark-glass"] .stc-check {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ---- Dark Schedule Page ---- */
+[data-theme="dark-glass"] .week-switcher {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .ws-btn {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark-glass"] .ws-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark-glass"] .ws-week-label {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .ws-today-btn {
+  color: var(--color-primary);
+}
+[data-theme="dark-glass"] .ws-semester-select {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+}
+
+[data-theme="dark-glass"] .view-toggle {
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark-glass"] .view-btn {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .view-btn.active {
+  background: var(--glass-bg);
+  color: var(--color-text);
+  box-shadow: var(--glass-highlight), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Dark Day View ---- */
+[data-theme="dark-glass"] .day-chips {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .day-chip {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .day-chip.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+[data-theme="dark-glass"] .day-chip.today {
+  border-color: var(--color-primary);
+}
+[data-theme="dark-glass"] .day-group {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .day-group-label {
+  color: var(--color-text-secondary);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .day-course-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .day-course-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+[data-theme="dark-glass"] .dcc-time {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .dcc-name {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .day-holiday-banner {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: rgba(255, 69, 58, 0.2);
+  color: #FF6B6B;
+}
+[data-theme="dark-glass"] .day-class-banner {
+  background: rgba(123, 140, 222, 0.12);
+  border-color: rgba(123, 140, 222, 0.2);
+  color: var(--color-primary);
+}
+[data-theme="dark-glass"] .day-mark-btn {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .day-mark-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--color-text);
+}
+
+/* ---- Dark Week View ---- */
+[data-theme="dark-glass"] .routine-band {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .rb-label {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .rb-chip {
+  background: rgba(123, 140, 222, 0.15);
+  border-color: rgba(123, 140, 222, 0.2);
+  color: var(--color-primary);
+}
+[data-theme="dark-glass"] .rb-chip:hover {
+  background: rgba(123, 140, 222, 0.25);
+}
+
+[data-theme="dark-glass"] .week-grid {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .wg-corner {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .wg-day-head {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .wg-day-head.today {
+  background: var(--color-primary-glass);
+  color: var(--color-primary);
+}
+[data-theme="dark-glass"] .wg-day-head.holiday .wg-day-num {
+  color: var(--color-danger);
+}
+[data-theme="dark-glass"] .wg-day-fest {
+  color: var(--color-danger);
+}
+[data-theme="dark-glass"] .wg-day-badge {
+  background: rgba(255, 69, 58, 0.15);
+  color: var(--color-danger);
+}
+[data-theme="dark-glass"] .wg-day-badge.badge-class {
+  background: rgba(123, 140, 222, 0.15);
+  color: var(--color-primary);
+}
+[data-theme="dark-glass"] .wg-period-label {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .wg-cell {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark-glass"] .wg-cell:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+[data-theme="dark-glass"] .wg-cell.drag-over {
+  background: rgba(123, 140, 222, 0.1);
+  border-color: rgba(123, 140, 222, 0.3);
+}
+[data-theme="dark-glass"] .wg-cell.holiday-cell {
+  background: rgba(255, 69, 58, 0.03);
+}
+
+/* ---- Dark Course Block ---- */
+[data-theme="dark-glass"] .course-block {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark-glass"] .course-block:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Dark Home Page ---- */
+[data-theme="dark-glass"] .home-header {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .home-week {
+  background: var(--color-primary-glass);
+  color: var(--color-primary);
+  border-color: rgba(123, 140, 222, 0.2);
+}
+[data-theme="dark-glass"] .home-holiday-badge {
+  background: rgba(255, 69, 58, 0.12);
+  color: var(--color-danger);
+  border-color: rgba(255, 69, 58, 0.2);
+}
+[data-theme="dark-glass"] .home-section-header {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .home-add-btn {
+  background: var(--color-primary);
+  color: #fff;
+}
+[data-theme="dark-glass"] .home-empty {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark-glass"] .timeline-item {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .timeline-item:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lg);
+}
+[data-theme="dark-glass"] .timeline-item.current {
+  border-color: rgba(123, 140, 222, 0.3);
+  background: var(--color-primary-glass);
+  box-shadow: var(--glass-highlight), 0 0 0 1px rgba(123, 140, 222, 0.15), var(--glass-shadow);
+}
+[data-theme="dark-glass"] .timeline-item.past {
+  opacity: 0.35;
+}
+[data-theme="dark-glass"] .tl-time {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .tl-check {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark-glass"] .tl-check.checked {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+[data-theme="dark-glass"] .tl-task-title {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .tl-task-title.done {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .tl-course-name {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .tl-course-teacher {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .tl-tag {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark-glass"] .home-todo-item {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .home-todo-item:hover {
+  background: var(--glass-bg-hover);
+}
+[data-theme="dark-glass"] .home-todo-item input[type="checkbox"] {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark-glass"] .home-todo-title {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .home-todo-item.done .home-todo-title {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+[data-theme="dark-glass"] .home-todo-time {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .home-progress {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark-glass"] .focus-card {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+[data-theme="dark-glass"] .focus-label {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .focus-course-name {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .focus-time {
+  color: var(--color-primary);
+}
+[data-theme="dark-glass"] .focus-location {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .focus-empty {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark-glass"] .countdown-chip {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .countdown-chip:hover {
+  background: var(--glass-bg-hover);
+}
+[data-theme="dark-glass"] .cd-label {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .cd-days {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .cd-date {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .cd-urgent {
+  color: var(--color-danger);
+}
+
+/* ---- Dark Tasks Page ---- */
+[data-theme="dark-glass"] .task-list-header {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .task-filter-bar {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .task-filter-btn {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .task-filter-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+[data-theme="dark-glass"] .task-item {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+}
+[data-theme="dark-glass"] .task-item:hover {
+  background: var(--glass-bg-hover);
+}
+[data-theme="dark-glass"] .task-item.done {
+  opacity: 0.5;
+}
+[data-theme="dark-glass"] .task-title {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .task-item.done .task-title {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+[data-theme="dark-glass"] .task-meta {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .task-tag {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .task-priority-high {
+  border-left-color: var(--color-danger);
+}
+[data-theme="dark-glass"] .task-priority-medium {
+  border-left-color: var(--color-warning);
+}
+[data-theme="dark-glass"] .task-priority-low {
+  border-left-color: var(--color-success);
+}
+[data-theme="dark-glass"] .task-empty {
+  color: var(--color-text-secondary);
+}
+
+/* ---- Dark Campaigns Page ---- */
+[data-theme="dark-glass"] .campaign-card {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+}
+[data-theme="dark-glass"] .campaign-card:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glass-highlight), var(--glass-shadow-lg);
+}
+[data-theme="dark-glass"] .campaign-name {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .campaign-desc {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .campaign-meta {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .campaign-progress-bar {
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .campaign-progress-fill {
+  box-shadow: 0 0 8px currentColor;
+}
+[data-theme="dark-glass"] .campaign-add-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .campaign-add-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+}
+
+/* ---- Dark Course Detail Sheet ---- */
+[data-theme="dark-glass"] .cds-header {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .cds-name {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .cds-info-row {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .cds-info-label {
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .cds-info-value {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .cds-week-grid {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark-glass"] .cds-week-cell {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .cds-week-cell.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+[data-theme="dark-glass"] .cds-week-cell.today {
+  border-color: var(--color-primary);
+}
+[data-theme="dark-glass"] .cds-note {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .cds-delete-btn {
+  color: var(--color-danger);
+}
+
+/* ---- Dark Day Override Sheet ---- */
+[data-theme="dark-glass"] .dos-date {
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] .dos-type-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .dos-type-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark-glass"] .dos-type-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+[data-theme="dark-glass"] .dos-clear-btn {
+  color: var(--color-danger);
+  border-color: rgba(255, 69, 58, 0.2);
+}
+[data-theme="dark-glass"] .dos-clear-btn:hover {
+  background: rgba(255, 69, 58, 0.1);
+}
+
+/* ---- Dark Reminder Banner ---- */
+[data-theme="dark-glass"] .reminder-banner {
+  background: rgba(255, 214, 10, 0.1);
+  border-bottom-color: rgba(255, 214, 10, 0.2);
+  color: var(--color-warning);
+}
+
+/* ---- Dark Import Toast ---- */
+[data-theme="dark-glass"] .import-toast {
+  background: rgba(123, 140, 222, 0.15);
+  border-color: rgba(123, 140, 222, 0.25);
+  color: var(--color-primary);
+}
+
+/* ---- Dark Scrollbar ---- */
+[data-theme="dark-glass"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-theme="dark-glass"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme="dark-glass"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+[data-theme="dark-glass"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Dark Selection ---- */
+[data-theme="dark-glass"] ::selection {
+  background: rgba(123, 140, 222, 0.3);
+  color: #fff;
+}
+
+/* ---- Dark Focus ---- */
+[data-theme="dark-glass"] :focus-visible {
+  outline-color: var(--color-primary);
+}

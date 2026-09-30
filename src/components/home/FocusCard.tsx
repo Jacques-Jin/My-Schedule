@@ -47,7 +47,7 @@ export default function FocusCard({ nextClass }: FocusCardProps) {
     }
   }
 
-  const color = course.color || "#4f46e5";
+  const color = course.color || "#4A6FA5";
 
   return (
     <div className="focus-card">

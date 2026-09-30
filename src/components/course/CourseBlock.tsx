@@ -12,11 +12,11 @@ interface CourseBlockProps {
 }
 
 export default function CourseBlock({ course, startPeriod, endPeriod, onClick, isGhost, gridRow, gridColumn, rowSpan }: CourseBlockProps) {
-  const bgColor = isGhost ? "transparent" : (course.color || "#4f46e5");
+  const bgColor = isGhost ? "transparent" : (course.color || "#4A6FA5");
 
   const style: React.CSSProperties = {
     "--block-bg": bgColor,
-    "--block-border": course.color || "#4f46e5",
+    "--block-border": course.color || "#4A6FA5",
   } as React.CSSProperties;
 
   if (gridRow !== undefined) style.gridRow = gridRow;

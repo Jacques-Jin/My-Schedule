@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Sheet from "../Sheet";
+import { COURSE_COLORS } from "../../lib/colors";
 
 interface CampaignFormSheetProps {
   open: boolean;
@@ -9,7 +10,7 @@ interface CampaignFormSheetProps {
   initialData?: any;
 }
 
-const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899"];
+const COLORS = COURSE_COLORS.slice(0, 6);
 
 export default function CampaignFormSheet({ open, onClose, onSave, onDelete, initialData }: CampaignFormSheetProps) {
   const [form, setForm] = useState({

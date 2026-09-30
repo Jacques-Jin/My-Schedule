@@ -1,12 +1,5 @@
 import { type Task, type Campaign } from "../../store";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "作业": "#3b82f6",
-  "考试": "#ef4444",
-  "学习": "#6366f1",
-  "生活": "#10b981",
-  "社团": "#8b5cf6",
-};
+import { CATEGORY_COLORS } from "../../lib/colors";
 
 const PRIORITY_LABEL: Record<string, string> = {
   "高": "!",

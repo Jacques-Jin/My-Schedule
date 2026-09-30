@@ -1,4 +1,5 @@
 import { type Course, type Task, type PeriodSlot } from "../../store";
+import { CATEGORY_COLORS } from "../../lib/colors";
 
 interface TimelineItemProps {
   type: "course" | "task";
@@ -14,14 +15,6 @@ interface TimelineItemProps {
   isTaskDone?: boolean;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "作业": "#3b82f6",
-  "考试": "#ef4444",
-  "学习": "#6366f1",
-  "生活": "#10b981",
-  "社团": "#8b5cf6",
-};
-
 export default function TimelineItem({
   type, course, task, slot, endSlot,
   isPast, isCurrent,
@@ -35,7 +28,7 @@ export default function TimelineItem({
 
   if (type === "course" && course && slot) {
     const time = `${slot.start_time}–${endSlot?.end_time || slot.end_time}`;
-    const color = course.color || "#4f46e5";
+    const color = course.color || "#4A6FA5";
     return (
       <div className={cls} onClick={() => onCourseClick?.(course)}>
         <div className="tl-time">{time}</div>
