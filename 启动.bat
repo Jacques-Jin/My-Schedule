@@ -1,54 +1,53 @@
 @echo off
-chcp 65001 >nul
 echo ========================================
-echo   æˆ‘çš„æ—¥ç¨‹ - å¯åŠ¨å™¨
+echo   ÎÒµÄÈÕ³Ì - Æô¶¯Æ÷
 echo ========================================
 echo.
 
-REM è®¾ç½®è·¯å¾„
+REM ÉèÖÃÂ·¾¶
 set DENO_PATH=C:\Users\Jack\.qoder-cn\bin\deno\deno.exe
 set NODE_PATH=C:\Users\Jack\.qoder-cn\bin\node\node.exe
 
-REM æ£€æŸ¥ Deno
+REM ¼ì²é Deno
 if not exist "%DENO_PATH%" (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° Deno: %DENO_PATH%
+    echo [´íÎó] Î´ÕÒµ½ Deno: %DENO_PATH%
     pause
     exit /b 1
 )
 
-REM æ£€æŸ¥ Node.js
+REM ¼ì²é Node.js
 if not exist "%NODE_PATH%" (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° Node.js: %NODE_PATH%
+    echo [´íÎó] Î´ÕÒµ½ Node.js: %NODE_PATH%
     pause
     exit /b 1
 )
 
-echo [1/3] å¯åŠ¨æœ¬åœ° API æœåŠ¡å™¨ (Deno)...
-start "æˆ‘çš„æ—¥ç¨‹-API æœåŠ¡å™¨" /min "%DENO_PATH%" run --allow-net --allow-env functions/local-dev-index.ts
+echo [1/3] Æô¶¯±¾µØ API ·þÎñÆ÷ (Deno)...
+start "ÎÒµÄÈÕ³Ì-API" /min "%DENO_PATH%" run --allow-net --allow-env functions/local-dev-index.ts
 
-REM ç­‰å¾… Deno æœåŠ¡å™¨å¯åŠ¨
-timeout /t 3 /nobreak >nul
+REM µÈ´ý Deno ·þÎñÆ÷Æô¶¯
+timeout /t 3 /nobreak >/dev/null
 
-echo [2/3] å¯åŠ¨å‰ç«¯å¼€å‘æœåŠ¡å™¨ (Vite)...
-start "æˆ‘çš„æ—¥ç¨‹-Vite æœåŠ¡å™¨" /min "%NODE_PATH%" node_modules/vite/bin/vite.js --host 127.0.0.1
+echo [2/3] Æô¶¯Ç°¶Ë¿ª·¢·þÎñÆ÷ (Vite)...
+start "ÎÒµÄÈÕ³Ì-Vite" /min "%NODE_PATH%" node_modules/vite/bin/vite.js --host 127.0.0.1
 
-REM ç­‰å¾… Vite æœåŠ¡å™¨å¯åŠ¨
-timeout /t 4 /nobreak >nul
+REM µÈ´ý Vite ·þÎñÆ÷Æô¶¯
+timeout /t 4 /nobreak >/dev/null
 
-echo [3/3] æ‰“å¼€æµè§ˆå™¨...
+echo [3/3] ´ò¿ªä¯ÀÀÆ÷...
 start http://127.0.0.1:5173/
 
 echo.
 echo ========================================
-echo   å¯åŠ¨å®Œæˆï¼
+echo   Æô¶¯Íê³É£¡
 echo ========================================
 echo.
-echo API æœåŠ¡å™¨ï¼šhttp://localhost:8000/
-echo å‰ç«¯åº”ç”¨ï¼š  http://127.0.0.1:5173/
+echo API ·þÎñÆ÷£ºhttp://localhost:8000/
+echo Ç°¶ËÓ¦ÓÃ£º  http://127.0.0.1:5173/
 echo.
-echo æç¤ºï¼š
-echo - ä¸¤ä¸ªæœåŠ¡å™¨çª—å£å·²æœ€å°åŒ–åˆ°ä»»åŠ¡æ 
-echo - å…³é—­æœåŠ¡å™¨ï¼šç‚¹å‡»ä»»åŠ¡æ å›¾æ ‡ï¼ŒæŒ‰ Ctrl+C
-echo - é‡å¯ç¨‹åºï¼šå…³é—­æ‰€æœ‰çª—å£åŽé‡æ–°è¿è¡Œæ­¤è„šæœ¬
+echo ÌáÊ¾£º
+echo - Á½¸ö·þÎñÆ÷´°¿ÚÒÑ×îÐ¡»¯µ½ÈÎÎñÀ¸
+echo - ¹Ø±Õ·þÎñÆ÷£ºµã»÷ÈÎÎñÀ¸Í¼±ê£¬°´ Ctrl+C
+echo - ÖØÆô³ÌÐò£º¹Ø±ÕËùÓÐ´°¿ÚºóÖØÐÂÔËÐÐ´Ë½Å±¾
 echo.
 pause
