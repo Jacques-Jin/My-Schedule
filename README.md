@@ -1,85 +1,67 @@
-# My Schedule - Quick Start Guide
+# My Schedule - 我的日程
 
-## One-Click Launch
+个人日程管理应用，支持课表导入、战役计划、调休标记等功能。
 
-### Method 1: Batch File (Recommended)
-Double-click `launch.bat` to automatically start all services and open the browser.
+**线上版本**: https://my-schedule-akzzfsdx3vh.qoder.zone/
 
-### Method 2: PowerShell
-Right-click `launch.ps1` → Select "Run with PowerShell"
+## 快速启动
 
-## Manual Start
+### 一键启动（推荐）
+双击 `启动.bat`，自动启动所有服务并打开浏览器。
 
-If the launcher doesn't work, you can start manually:
+### 停止服务
+双击 `停止.bat`。
 
-### Step 1: Start API Server
+### 手动启动
 ```bash
-deno run --allow-net --allow-env functions/local-dev-index.ts
+# 终端 1：启动 API 服务器
+deno run --allow-net --allow-env --allow-read functions/local-dev-index.ts
+
+# 终端 2：启动前端开发服务器
+npm run dev
 ```
 
-### Step 2: Start Frontend Server (new terminal)
-```bash
-node node_modules/vite/bin/vite.js --host 127.0.0.1
-```
+访问 http://127.0.0.1:5173/
 
-### Step 3: Open Browser
-Visit http://127.0.0.1:5173/
+## 环境要求
 
-## Stop Servers
+- Node.js >= 22.12.0
+- Deno
+- 首次运行需执行 `npm install`
 
-### Method 1: Stop Script
-Double-click `stop.bat`
-
-### Method 2: Manual Stop
-- Press `Ctrl+C` in the server terminal windows
-- Or close the terminal windows
-
-## Access URLs
-
-- **Frontend App**: http://127.0.0.1:5173/
-- **API Server**: http://localhost:8000/
-
-## Requirements
-
-1. **First time setup** - Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. **Required software**:
-   - Node.js (>= 22.12.0)
-   - Deno
-
-3. **Data Notes**:
-   - Local development uses in-memory database
-   - Data resets to seed data on server restart
-   - Seed data includes complete 2026 Fall semester schedule
-
-4. **Port Conflicts**:
-   - If ports 8000 or 5173 are in use, stop the programs using them first
-   - Or use `stop.bat` to clean up old processes
-
-## Development Mode
-
-After startup, hot reload is supported:
-- Frontend code changes auto-refresh the browser
-- Backend code changes require Deno server restart
-
-## Deployed Version
-
-Online version: https://my-schedule-akzzfsdx3vh.qoder.zone/
-(Requires Sites account access)
-
-## File Structure
+## 项目结构
 
 ```
 my-schedule/
-├── launch.bat          # Windows batch launcher
-├── launch.ps1          # PowerShell launcher
-├── stop.bat            # Stop servers script
-├── functions/
-│   ├── local-dev-index.ts    # Local dev server with fake Supabase
-│   ├── handler.mjs           # API request handler
-│   └── adapter.mjs           # Supabase adapter (for production)
-└── src/                      # React frontend source
+├── src/                    # React 前端源码
+├── functions/              # 边缘函数（API 处理）
+│   ├── local-dev-index.ts  # 本地开发服务器
+│   ├── handler.mjs         # API 请求处理器
+│   └── adapter.mjs         # Supabase 适配器
+├── docs/                   # 开发文档
+│   ├── product/            # 产品需求（PRD、开发计划）
+│   ├── features/           # 子功能方案
+│   ├── acceptance/         # 验收报告
+│   ├── logs/               # 开发日志
+│   └── guides/             # 使用说明
+├── data/                   # 数据资产
+│   ├── seed/               # 种子数据
+│   ├── backups/            # 数据备份
+│   └── raw/                # 原始数据来源（课表、笔记）
+├── scripts/                # 构建/开发脚本
+│   ├── build.mjs           # 生产构建
+│   ├── check-node.mjs      # Node 版本校验
+│   └── tools/              # 一次性工具
+├── tests/                  # 自动化测试（phase1-10）
+├── dev/                    # 开发工具
+├── vendor/                 # 第三方 CSS（shadcn）
+├── 启动.bat / 停止.bat      # 启动器
+└── open-deployed.bat       # 打开线上版本
 ```
+
+## 开发说明
+
+- 本地开发使用内存数据库，重启后数据重置为种子数据
+- 前端支持热重载，后端修改需重启 Deno 服务器
+- 端口：API 8000，前端 5173
+- 如端口被占用，先用 `停止.bat` 清理旧进程

@@ -11,6 +11,6 @@ echo.
 echo Next steps:
 echo 1. Login with Qoder account
 echo 2. Go to Settings - Data Backup
-echo 3. Click "Select File" and upload seed-data.json
+echo 3. Click "Select File" and upload data/seed/seed-data.json
 echo.
 pause

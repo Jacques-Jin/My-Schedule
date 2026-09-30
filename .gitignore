@@ -7,3 +7,4 @@ dist/
 *.tsbuildinfo
 .qoder-sites/
 .qoder-sites.json
+data/backups/*.json
