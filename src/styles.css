@@ -645,7 +645,7 @@ body::before {
 
 .week-grid {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: 48px repeat(7, minmax(0, 1fr));
   grid-template-rows: auto repeat(14, minmax(40px, 1fr));
   gap: 1px;
   background: var(--color-border);
@@ -656,7 +656,7 @@ body::before {
   box-shadow: var(--glass-shadow);
 }
 
-.wg-corner { background: rgba(255, 255, 255, 0.5); }
+.wg-corner { background: rgba(255, 255, 255, 0.5); grid-row: 1; grid-column: 1; }
 
 .wg-day-head {
   background: rgba(255, 255, 255, 0.5);
@@ -742,13 +742,14 @@ body::before {
 /* Routine band */
 .routine-band {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: 48px repeat(7, minmax(0, 1fr));
   gap: 1px;
   background: var(--color-border);
   border: 1px solid var(--glass-border);
   border-bottom: none;
   border-radius: var(--radius) var(--radius) 0 0;
   overflow: hidden;
+  min-width: 600px;
 }
 .rb-label {
   background: rgba(255, 255, 255, 0.5);

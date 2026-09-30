@@ -161,17 +161,16 @@
 [data-theme="neo-brutalism"] .nav-bottom-tab {
   color: #000;
   font-weight: 600;
+  transition: background 80ms linear, color 80ms linear;
 }
 
 [data-theme="neo-brutalism"] .nav-bottom-tab.active {
-  color: var(--nb-blue);
+  background: #000000;
+  color: var(--nb-yellow);
 }
 
 [data-theme="neo-brutalism"] .nav-bottom-tab.active::before {
-  background: var(--nb-blue);
-  border-radius: 0;
-  width: 6px;
-  height: 3px;
+  display: none;
 }
 
 [data-theme="neo-brutalism"] .nav-bottom-icon {
@@ -735,7 +734,7 @@
 
 [data-theme="neo-brutalism"] .course-block {
   border-radius: 0;
-  border-left: 4px solid #000;
+  border: 2px solid #000000;
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
   transition: all 80ms linear;
 }
