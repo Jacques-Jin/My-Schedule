@@ -416,7 +416,9 @@ export default function CampaignsPage() {
         onClose={() => setAttachOpen(false)}
         onConfirm={() => {
           const checkboxes = document.querySelectorAll<HTMLInputElement>(".attach-task-check:checked");
-          const ids = Array.from(checkboxes).map(cb => cb.value);
+          const checked = new Set(Array.from(checkboxes).map(cb => cb.value));
+          // checkbox .value is always a string; map back to the store's real id type
+          const ids = unattachedTasks.filter(t => checked.has(String(t.id))).map(t => t.id);
           if (ids.length > 0) handleAttachTasks(ids);
           else setAttachOpen(false);
         }}
