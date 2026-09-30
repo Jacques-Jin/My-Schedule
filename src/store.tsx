@@ -19,6 +19,7 @@ export interface Task {
 export interface TaskCompletion { id: string; task_id: string; date: string }
 export interface Campaign { id: string; name: string; goal: string; deadline: string | null; color: string }
 export interface Countdown { id: string; name: string; target_date: string }
+export interface Homework { id: string; title: string; course_id: string; due_date: string | null; description: string; completed: boolean }
 export interface Settings { id: number; remind_minutes: number; overlay_repeat: boolean }
 
 interface State {
@@ -30,6 +31,7 @@ interface State {
   tasks: Task[];
   completions: TaskCompletion[];
   countdowns: Countdown[];
+  homework: Homework[];
   settings: Settings;
   status: "loading" | "ready" | "error";
 }
@@ -54,6 +56,8 @@ type Action =
   | { type: "attach_tasks"; campaignId: string | null; taskIds: string[] }
   | { type: "upsert_countdown"; data: Countdown }
   | { type: "remove_countdown"; id: string }
+  | { type: "upsert_homework"; data: Homework }
+  | { type: "remove_homework"; id: string }
   | { type: "update_settings"; data: Settings };
 
 const defaultSettings: Settings = { id: 1, remind_minutes: 10, overlay_repeat: true };
@@ -113,6 +117,12 @@ function reducer(state: State, action: Action): State {
     }
     case "remove_countdown":
       return { ...state, countdowns: state.countdowns.filter(c => c.id !== action.id) };
+    case "upsert_homework": {
+      const exists = state.homework.some(h => h.id === action.data.id);
+      return { ...state, homework: exists ? state.homework.map(h => h.id === action.data.id ? action.data : h) : [...state.homework, action.data] };
+    }
+    case "remove_homework":
+      return { ...state, homework: state.homework.filter(h => h.id !== action.id) };
     case "update_settings":
       return { ...state, settings: action.data };
     default:
@@ -122,7 +132,7 @@ function reducer(state: State, action: Action): State {
 
 const initialState: State = {
   semesters: [], periodSlots: [], holidays: [], courses: [],
-  campaigns: [], tasks: [], completions: [], countdowns: [],
+  campaigns: [], tasks: [], completions: [], countdowns: [], homework: [],
   settings: defaultSettings, status: "loading",
 };
 
@@ -147,6 +157,9 @@ interface StoreCtx {
   attachTasks: (campaignId: string | null, taskIds: string[]) => Promise<void>;
   saveCountdown: (data: any) => Promise<Countdown>;
   deleteCountdown: (id: string) => Promise<void>;
+  saveHomework: (data: any) => Promise<Homework>;
+  deleteHomework: (id: string) => Promise<void>;
+  completeHomework: (params: { id: string; completed: boolean }) => Promise<void>;
   saveSettings: (data: any) => Promise<Settings>;
   exportData: () => Promise<any>;
   importData: (data: any) => Promise<void>;
@@ -296,6 +309,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { await api.countdownDelete(id); } catch { await refresh(); }
   }, [refresh]);
 
+  const saveHomework = useCallback(async (data: any) => {
+    const row = await api.homeworkSave(data);
+    dispatch({ type: "upsert_homework", data: row });
+    return row;
+  }, []);
+
+  const deleteHomework = useCallback(async (id: string) => {
+    dispatch({ type: "remove_homework", id });
+    try { await api.homeworkDelete(id); } catch { await refresh(); }
+  }, [refresh]);
+
+  const completeHomework = useCallback(async (params: { id: string; completed: boolean }) => {
+    dispatch({ type: "upsert_homework", data: { ...state.homework.find(h => h.id === params.id), completed: params.completed } as Homework });
+    try { await api.homeworkComplete(params); } catch { await refresh(); }
+  }, [state.homework]);
+
   const saveSettings = useCallback(async (data: any) => {
     const row = await api.settingsSave(data);
     dispatch({ type: "update_settings", data: row });
@@ -319,7 +348,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveCourse, deleteCourse,
       saveTask, deleteTask, batchTasks, completeTask,
       saveCampaign, deleteCampaign, attachTasks,
-      saveCountdown, deleteCountdown, saveSettings,
+      saveCountdown, deleteCountdown, saveHomework, deleteHomework, completeHomework, saveSettings,
       exportData, importData,
     }}>
       {children}

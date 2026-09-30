@@ -131,9 +131,19 @@ async function main() {
   });
   check("Week 4 Fri is National Day holiday", holiday && holiday.name === "国庆");
 
-  // 7. Biweekly course (博雅) not in course list (marked as 不排课)
+  // 7. Biweekly course (博雅) has empty week_rule so never occurs on any day
   const boyaCourses = courses.filter(c => c.name.includes("博雅"));
-  check("博雅 course not in schedule (不排课)", boyaCourses.length === 0);
+  const boyaOccurs = boyaCourses.some(c => {
+    for (let w = 1; w <= 19; w++) {
+      for (let d = 0; d < 7; d++) {
+        const dt = parseDate(semester.start_monday);
+        dt.setDate(dt.getDate() + (w - 1) * 7 + d);
+        if (courseOccursOn(c, dt, semester)) return true;
+      }
+    }
+    return false;
+  });
+  check("博雅 course never occurs (不排课, empty week_rule)", !boyaOccurs);
 
   // 8. Week 5 Wednesday courses
   const week5Wed = parseDate("2026-10-07");

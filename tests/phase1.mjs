@@ -49,7 +49,7 @@ async function main() {
   // 5. Build compiles
   const { execSync } = await import("node:child_process");
   try {
-    execSync("npx tsc --noEmit", { cwd: "D:/AI_WorkStation/my-schedule", stdio: "pipe" });
+    execSync("C:/Users/Jack/.qoder-cn/bin/node/node.exe node_modules/typescript/bin/tsc --noEmit", { cwd: "D:/AI_WorkStation/my-schedule", stdio: "pipe" });
     check("TypeScript compiles cleanly", true);
   } catch { check("TypeScript compiles cleanly", false); }
 

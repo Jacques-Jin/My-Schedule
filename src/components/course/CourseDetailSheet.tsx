@@ -1,6 +1,7 @@
 import type { Course, Semester, PeriodSlot } from "../../store";
 import { courseOccursOn, parseDate, formatDate, weekIndexOf } from "../../lib/date";
 import Sheet from "../Sheet";
+import HomeworkList from "../homework/HomeworkList";
 
 interface CourseDetailSheetProps {
   open: boolean;
@@ -64,6 +65,10 @@ export default function CourseDetailSheet({ open, onClose, course, semester, per
             <span className="cd-value">{course.note}</span>
           </div>
         )}
+
+        <div className="course-homework-section">
+          <HomeworkList courseId={course.id} />
+        </div>
       </div>
     </Sheet>
   );

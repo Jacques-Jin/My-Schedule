@@ -144,7 +144,8 @@ async function main() {
   const w12TueCourses = courses.filter(c => courseOccursOn(c, w12Tue, sem));
   const w12TueNames = w12TueCourses.map(c => c.name);
   check("week12 Tue no 大学计算机基础 (gap week)", !w12TueNames.includes("大学计算机基础"));
-  check("week12 Tue no 新时代实践教育", !w12TueNames.includes("新时代实践教育"));
+  // 新时代实践教育 also has a Tuesday entry in week 12 (weekday=2, ranges=[[12,12]])
+  check("week12 Tue has 新时代实践教育 (Tue session)", w12TueNames.includes("新时代实践教育"));
 
   // Wednesday periods 3-4 in week 4 = 综合法语 (蔡小燕)
   // Week 4 Mon = 2026-09-28, Wed = 2026-09-30

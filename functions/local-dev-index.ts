@@ -26,6 +26,7 @@ function buildSeedTables() {
     tasks,
     task_completions: [],
     countdowns: [],
+    homework: [],
     settings: [{ id: 1, ...SEED.settings }],
   };
 }
@@ -49,6 +50,12 @@ class FakeBuilder {
   delete() { this._mode = "delete"; return this; }
   eq(col, val) { this._filters.push(r => r[col] === val); return this; }
   neq(col, val) { this._filters.push(r => r[col] !== val); return this; }
+  not(col, op, val) {
+    if (op === "is") this._filters.push(r => r[col] !== val);
+    else if (op === "eq") this._filters.push(r => r[col] !== val);
+    else throw new Error(`fake_supabase: unsupported not operator ${op}`);
+    return this;
+  }
   in(col, arr) { this._filters.push(r => arr.includes(r[col])); return this; }
   is(col, val) { this._filters.push(r => r[col] === val); return this; }
   gte(col, val) { this._filters.push(r => r[col] >= val); return this; }

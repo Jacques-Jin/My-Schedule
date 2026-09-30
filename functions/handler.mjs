@@ -156,6 +156,7 @@ const actions = {
       ["tasks", "id,title,date,start_time,end_time,category,priority,repeat_rule,reminder,done,campaign_id,note,created_at"],
       ["task_completions", "id,task_id,date"],
       ["countdowns", "id,name,target_date"],
+      ["homework", "id,title,course_id,due_date,description,completed,created_at"],
       ["settings", "id,remind_minutes,overlay_repeat"],
     ];
     const result = {};
@@ -174,6 +175,7 @@ const actions = {
       tasks: result.tasks,
       completions: result.task_completions,
       countdowns: result.countdowns,
+      homework: result.homework,
       settings: settingsRow,
     };
   },
@@ -440,7 +442,7 @@ const actions = {
   },
 
   "data.export": async ({ supabase }) => {
-    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "settings"];
+    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "homework", "settings"];
     const result = {};
     for (const table of tables) {
       const { data, error } = await supabase.from(table).select("*").limit(10000);
@@ -458,20 +460,31 @@ const actions = {
       return rest;
     };
 
-    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "settings"];
+    const tables = ["semesters", "period_slots", "holidays", "courses", "campaigns", "tasks", "task_completions", "countdowns", "homework", "settings"];
     for (const table of tables) {
       const { error } = await supabase.from(table).delete().not("id", "is", null);
       if (error) throw new Error(`clear ${table}: ${error.message}`);
     }
 
+    const CREATED_AT_TABLES = new Set(["semesters", "campaigns", "tasks", "homework"]);
+    const prep = (row, table) => {
+      const clean = strip(row);
+      clean.id = row.id || crypto.randomUUID();
+      if (CREATED_AT_TABLES.has(table)) clean.created_at = row.created_at || new Date().toISOString();
+      return clean;
+    };
+
     const idMap = {};
+    const insertedIds = {};
     const buildMap = async (table) => {
       const rows = payload[table];
       if (!Array.isArray(rows) || rows.length === 0) return;
       idMap[table] = {};
+      insertedIds[table] = [];
       for (const row of rows) {
-        const { data: inserted, error } = await supabase.from(table).insert(strip(row)).select("id").single();
+        const { data: inserted, error } = await supabase.from(table).insert(prep(row, table)).select("id").single();
         if (error) throw new Error(`insert ${table}: ${error.message}`);
+        insertedIds[table].push(inserted.id);
         if (row.id) idMap[table][row.id] = inserted.id;
       }
     };
@@ -482,10 +495,9 @@ const actions = {
 
     const courseRows = payload.courses;
     if (Array.isArray(courseRows) && courseRows.length > 0) {
-      const semIds = Object.values(idMap.semesters || {});
-      const fallbackSem = semIds[0] || null;
+      const fallbackSem = insertedIds.semesters?.[0] || null;
       for (const row of courseRows) {
-        const clean = strip(row);
+        const clean = prep(row, "courses");
         if (row.semester_id && idMap.semesters?.[row.semester_id]) {
           clean.semester_id = idMap.semesters[row.semester_id];
         } else if (!clean.semester_id) {
@@ -502,7 +514,7 @@ const actions = {
     if (Array.isArray(taskRows) && taskRows.length > 0) {
       if (!idMap.tasks) idMap.tasks = {};
       for (const row of taskRows) {
-        const clean = strip(row);
+        const clean = prep(row, "tasks");
         if (row.campaign_id && idMap.campaigns?.[row.campaign_id]) {
           clean.campaign_id = idMap.campaigns[row.campaign_id];
         }
@@ -515,7 +527,7 @@ const actions = {
     const tcRows = payload.task_completions;
     if (Array.isArray(tcRows) && tcRows.length > 0) {
       for (const row of tcRows) {
-        const clean = strip(row);
+        const clean = prep(row, "task_completions");
         if (row.task_id && idMap.tasks?.[row.task_id]) {
           clean.task_id = idMap.tasks[row.task_id];
         }
@@ -525,6 +537,19 @@ const actions = {
     }
 
     await buildMap("countdowns");
+
+    const homeworkRows = payload.homework;
+    if (Array.isArray(homeworkRows) && homeworkRows.length > 0) {
+      for (const row of homeworkRows) {
+        const clean = prep(row, "homework");
+        if (row.course_id && idMap.courses?.[row.course_id]) {
+          clean.course_id = idMap.courses[row.course_id];
+        }
+        if (!clean.course_id) continue;
+        const { error } = await supabase.from("homework").insert(clean);
+        if (error) throw new Error(`insert homework: ${error.message}`);
+      }
+    }
 
     const settingsData = payload.settings;
     if (settingsData) {
@@ -540,6 +565,36 @@ const actions = {
     }
 
     return { imported: true };
+  },
+
+  "homework.save": async ({ supabase, payload }) => {
+    if (!payload.title || typeof payload.title !== "string") throw new Error("invalid_title");
+    if (!payload.course_id) throw new Error("missing_course_id");
+    const row = pick(payload, ["title", "course_id", "due_date", "description", "completed"]);
+    if (payload.id) {
+      const { data, error } = await supabase.from("homework").update(row).eq("id", payload.id).select().single();
+      if (error) throw new Error("update_homework_failed");
+      return data;
+    }
+    const insertRow = { completed: false, created_at: new Date().toISOString(), ...row };
+    const { data, error } = await supabase.from("homework").insert(insertRow).select().single();
+    if (error) throw new Error("insert_homework_failed");
+    return data;
+  },
+
+  "homework.delete": async ({ supabase, payload }) => {
+    if (!payload.id) throw new Error("missing_id");
+    const { error } = await supabase.from("homework").delete().eq("id", payload.id);
+    if (error) throw new Error("delete_homework_failed");
+    return { deleted: true };
+  },
+
+  "homework.complete": async ({ supabase, payload }) => {
+    if (!payload.id) throw new Error("missing_id");
+    if (typeof payload.completed !== "boolean") throw new Error("invalid_completed");
+    const { data, error } = await supabase.from("homework").update({ completed: payload.completed }).eq("id", payload.id).select().single();
+    if (error) throw new Error("update_homework_failed");
+    return data;
   },
 };
 

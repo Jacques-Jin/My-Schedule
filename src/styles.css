@@ -1095,3 +1095,48 @@ body {
 .reminder-dismiss:hover { opacity: 1; }
 
 
+
+/* ---- Homework List ---- */
+.homework-list { margin-top: 16px; }
+.homework-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.homework-header h3 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+.homework-items { display: flex; flex-direction: column; gap: 8px; }
+.homework-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius); padding: 10px 12px;
+  transition: all 0.15s;
+}
+.homework-item.completed { opacity: 0.6; }
+.homework-item.completed .hw-title { text-decoration: line-through; }
+.hw-checkbox { padding-top: 2px; }
+.hw-checkbox input[type="checkbox"] {
+  width: 16px; height: 16px; cursor: pointer;
+  accent-color: var(--color-primary);
+}
+.hw-content { flex: 1; min-width: 0; }
+.hw-title { font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; }
+.hw-meta { display: flex; gap: 12px; font-size: 0.8rem; color: var(--color-text-secondary); }
+.hw-course { font-weight: 500; }
+.hw-due { color: var(--color-warning); }
+.hw-desc { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 4px; }
+.hw-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.homework-form {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.course-homework-section {
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.empty-state {
+  text-align: center; padding: 24px 16px;
+  color: var(--color-text-secondary); font-size: 0.85rem;
+}
