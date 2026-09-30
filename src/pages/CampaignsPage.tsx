@@ -42,12 +42,20 @@ export default function CampaignsPage() {
     return tasks.filter(t => t.campaign_id === selectedCampaignId);
   }, [tasks, selectedCampaignId]);
 
+  const isTaskDoneOn = useCallback((task: Task, date: string): boolean => {
+    const rule = JSON.parse(task.repeat_rule || '{"type":"none"}');
+    if (rule.type !== "none") {
+      return state.completions.some(c => c.task_id === task.id && c.date === date);
+    }
+    return task.done;
+  }, [state.completions]);
+
   const campaignProgress = useMemo(() => {
     if (!selectedCampaign) return { done: 0, total: 0 };
     const campaignTasks = tasks.filter(t => t.campaign_id === selectedCampaign.id);
-    const done = campaignTasks.filter(t => t.done).length;
+    const done = campaignTasks.filter(t => isTaskDoneOn(t, t.date)).length;
     return { done, total: campaignTasks.length };
-  }, [tasks, selectedCampaign]);
+  }, [tasks, selectedCampaign, isTaskDoneOn]);
 
   const groupedTasks = useMemo(() => {
     const groups: Record<string, Task[]> = {};
@@ -117,8 +125,8 @@ export default function CampaignsPage() {
   };
 
   const handleToggle = useCallback((task: Task) => {
-    completeTask({ id: task.id, date: task.date, done: !task.done });
-  }, [completeTask]);
+    completeTask({ id: task.id, date: task.date, done: !isTaskDoneOn(task, task.date) });
+  }, [completeTask, isTaskDoneOn]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -218,7 +226,7 @@ export default function CampaignsPage() {
         <div className="campaign-list">
           {campaigns.map(campaign => {
             const campaignTasks = tasks.filter(t => t.campaign_id === campaign.id);
-            const done = campaignTasks.filter(t => t.done).length;
+            const done = campaignTasks.filter(t => isTaskDoneOn(t, t.date)).length;
             const total = campaignTasks.length;
             const progress = total > 0 ? (done / total) * 100 : 0;
 
@@ -314,7 +322,7 @@ export default function CampaignsPage() {
               key={task.id}
               task={task}
               campaigns={campaigns}
-              done={task.done}
+              done={isTaskDoneOn(task, task.date)}
               onToggle={() => handleToggle(task)}
               onEdit={() => { setEditingTask(task); setTaskFormOpen(true); }}
               onDelete={() => setTaskDeleteConfirm(task.id)}
