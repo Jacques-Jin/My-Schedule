@@ -9,7 +9,9 @@ import DayChips from "../components/course/DayChips";
 import CourseBlock from "../components/course/CourseBlock";
 import CourseDetailSheet from "../components/course/CourseDetailSheet";
 import CourseFormSheet from "../components/course/CourseFormSheet";
+import TaskFormSheet from "../components/task/TaskFormSheet";
 import { parseScheduleXlsx } from "../lib/xlsx-import";
+import { cellToTaskDraft, type TaskDraft } from "../lib/schedule-cell";
 
 type ViewMode = "day" | "week";
 
@@ -36,6 +38,8 @@ export default function SchedulePage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [importMsg, setImportMsg] = useState("");
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { localStorage.setItem("schedule_view", view); }, [view]);
@@ -96,6 +100,13 @@ export default function SchedulePage() {
     if (!task) return;
     await saveTask({ ...task, start_time: newStart, end_time: newEnd });
   }, [tasks, saveTask]);
+
+  const handleCellClick = useCallback((dateStr: string, slot: { start_time: string; end_time: string }) => {
+    if (taskFormOpen) return;
+    const draft = cellToTaskDraft(dateStr, slot);
+    setTaskDraft(draft);
+    setTaskFormOpen(true);
+  }, [taskFormOpen]);
 
   const handleXlsxFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -174,6 +185,7 @@ export default function SchedulePage() {
           periodSlots={pSlots}
           onCourseClick={openCourseDetail}
           onTaskTimeChange={handleTaskTimeChange}
+          onCellClick={handleCellClick}
         />
       )}
 
@@ -191,6 +203,15 @@ export default function SchedulePage() {
         onClose={() => setFormOpen(false)}
         semesterId={currentSemester.id}
         periodSlots={pSlots}
+      />
+
+      <TaskFormSheet
+        open={taskFormOpen}
+        onClose={() => { setTaskFormOpen(false); setTaskDraft(null); }}
+        onSave={(d) => saveTask(d)}
+        initialData={taskDraft || undefined}
+        campaigns={state.campaigns}
+        totalWeeks={currentSemester.total_weeks}
       />
     </div>
   );
@@ -265,7 +286,7 @@ function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getHoli
 }
 
 // ---- Week View ----
-function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange }: {
+function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange, onCellClick }: {
   dates: string[];
   today: string;
   getCourses: (d: string) => Course[];
@@ -274,6 +295,7 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
   periodSlots: { id: string; slot_no: number; start_time: string; end_time: string }[];
   onCourseClick: (c: Course) => void;
   onTaskTimeChange: (taskId: string, newStart: string, newEnd: string) => Promise<void>;
+  onCellClick: (dateStr: string, slot: { start_time: string; end_time: string }) => void;
 }) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const dragTask = useRef<{ task: Task; durationMin: number } | null>(null);
@@ -320,6 +342,7 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
                   className="rb-chip"
                   draggable
                   onDragStart={e => handleDragStart(e, t)}
+                  onDragEnd={() => { dragTask.current = null; }}
                   title={`${t.title}${t.start_time ? ` ${t.start_time}-${t.end_time}` : ""}`}
                 >
                   {t.start_time && <span className="rb-chip-time">{t.start_time}</span>}
@@ -365,6 +388,7 @@ function WeekView({ dates, today, getCourses, getHoliday, getRepeatTasks, period
                   onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCell(cellKey); }}
                   onDragLeave={() => setDragOverCell(prev => prev === cellKey ? null : prev)}
                   onDrop={e => handleDrop(e, slot)}
+                  onClick={() => { if (dragTask.current) return; onCellClick(d, slot); }}
                 />
               );
             })}

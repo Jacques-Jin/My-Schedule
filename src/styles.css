@@ -452,8 +452,26 @@ body {
 .wg-cell {
   background: var(--color-surface);
   min-height: 40px;
+  cursor: pointer;
+  position: relative;
+}
+.wg-cell:hover {
+  background: rgba(79, 70, 229, 0.06);
+}
+.wg-cell:hover::after {
+  content: "+";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(79, 70, 229, 0.3);
+  pointer-events: none;
 }
 .wg-cell.holiday-cell { background: #fef2f2; }
+.wg-cell.holiday-cell:hover { background: #fee2e2; }
 
 .course-block {
   background: var(--block-bg, var(--color-primary));
