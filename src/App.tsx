@@ -6,6 +6,7 @@ import TasksPage from "./pages/TasksPage";
 import HomePage from "./pages/HomePage";
 import CampaignsPage from "./pages/CampaignsPage";
 import SettingsPage from "./pages/SettingsPage";
+import HomeworkPage from "./pages/HomeworkPage";
 import ReminderBanner from "./components/ReminderBanner";
 import "./styles.css";
 
@@ -18,6 +19,7 @@ const pages: Record<string, () => ReactNode> = {
   home: HomePage,
   schedule: SchedulePage,
   tasks: TasksPage,
+  homework: HomeworkPage,
   campaigns: CampaignsPage,
   settings: SettingsPage,
 };

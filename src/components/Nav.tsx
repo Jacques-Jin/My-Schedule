@@ -4,6 +4,7 @@ const TABS = [
   { id: "home", label: "首页", icon: "🏠" },
   { id: "schedule", label: "课表", icon: "📅" },
   { id: "tasks", label: "日程", icon: "✅" },
+  { id: "homework", label: "作业", icon: "📚" },
   { id: "campaigns", label: "战役", icon: "🎯" },
   { id: "settings", label: "设置", icon: "⚙️" },
 ];

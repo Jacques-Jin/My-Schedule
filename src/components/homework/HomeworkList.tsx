@@ -1,20 +1,24 @@
 import { useState } from "react";
 import { useStore, type Homework, type Course } from "../../store";
 import { formatDate } from "../../lib/date";
+import { groupHomework } from "../../lib/homework";
 
 interface HomeworkListProps {
   courseId?: string;
   showCompleted?: boolean;
+  grouped?: boolean;
+  courseFilter?: string;
 }
 
-export default function HomeworkList({ courseId, showCompleted = false }: HomeworkListProps) {
+export default function HomeworkList({ courseId, showCompleted = false, grouped = false, courseFilter }: HomeworkListProps) {
   const { state, saveHomework, deleteHomework, completeHomework } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Homework | null>(null);
 
   const filteredHomework = state.homework.filter(h => {
     if (courseId && h.course_id !== courseId) return false;
-    if (!showCompleted && h.completed) return false;
+    if (courseFilter && h.course_id !== courseFilter) return false;
+    if (!grouped && !showCompleted && h.completed) return false;
     return true;
   });
 
@@ -40,10 +44,44 @@ export default function HomeworkList({ courseId, showCompleted = false }: Homewo
     await completeHomework({ id: homework.id, completed: !homework.completed });
   };
 
+  const renderItem = (hw: Homework, overdue = false) => (
+    <div key={hw.id} className={`homework-item ${hw.completed ? "completed" : ""} ${overdue ? "overdue" : ""}`}>
+      <div className="hw-checkbox">
+        <input
+          type="checkbox"
+          checked={hw.completed}
+          onChange={() => handleToggleComplete(hw)}
+        />
+      </div>
+      <div className="hw-content">
+        <div className="hw-title">{hw.title}</div>
+        <div className="hw-meta">
+          {!courseId && <span className="hw-course">{getCourseName(hw.course_id)}</span>}
+          {hw.due_date && (
+            <span className="hw-due">
+              截止: {formatDate(new Date(hw.due_date))}
+            </span>
+          )}
+        </div>
+        {hw.description && <div className="hw-desc">{hw.description}</div>}
+      </div>
+      <div className="hw-actions">
+        <button className="btn-text btn-sm" onClick={() => { setEditing(hw); setShowForm(true); }}>
+          编辑
+        </button>
+        <button className="btn-text danger btn-sm" onClick={() => handleDelete(hw.id)}>
+          删除
+        </button>
+      </div>
+    </div>
+  );
+
+  const groups = grouped ? groupHomework(filteredHomework, formatDate(new Date())) : [];
+
   return (
     <div className="homework-list">
-      <div className="homework-header">
-        <h3>{courseId ? "课程作业" : "全部作业"}</h3>
+      <div className={`homework-header ${grouped ? "grouped" : ""}`}>
+        {!grouped && <h3>{courseId ? "课程作业" : "全部作业"}</h3>}
         <button className="btn-primary btn-sm" onClick={() => { setEditing(null); setShowForm(true); }}>
           + 添加作业
         </button>
@@ -62,43 +100,41 @@ export default function HomeworkList({ courseId, showCompleted = false }: Homewo
         />
       )}
 
-      {sortedHomework.length === 0 ? (
+      {grouped ? (
+        filteredHomework.length === 0 ? (
+          <div className="empty-state">
+            <p>暂无作业</p>
+          </div>
+        ) : (
+          <div className="homework-groups">
+            {groups.map(g => {
+              if (g.items.length === 0) return null;
+              if (g.key === "completed") {
+                return (
+                  <details key={g.key} className="hw-group hw-group-done">
+                    <summary className="hw-group-title">{g.label} ({g.items.length})</summary>
+                    <div className="homework-items">{g.items.map(hw => renderItem(hw))}</div>
+                  </details>
+                );
+              }
+              return (
+                <div key={g.key} className={`hw-group ${g.variant ? `hw-group-${g.variant}` : ""}`}>
+                  <div className="hw-group-title">{g.label} ({g.items.length})</div>
+                  <div className="homework-items">
+                    {g.items.map(hw => renderItem(hw, g.variant === "overdue"))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : sortedHomework.length === 0 ? (
         <div className="empty-state">
           <p>暂无作业</p>
         </div>
       ) : (
         <div className="homework-items">
-          {sortedHomework.map(hw => (
-            <div key={hw.id} className={`homework-item ${hw.completed ? "completed" : ""}`}>
-              <div className="hw-checkbox">
-                <input
-                  type="checkbox"
-                  checked={hw.completed}
-                  onChange={() => handleToggleComplete(hw)}
-                />
-              </div>
-              <div className="hw-content">
-                <div className="hw-title">{hw.title}</div>
-                <div className="hw-meta">
-                  {!courseId && <span className="hw-course">{getCourseName(hw.course_id)}</span>}
-                  {hw.due_date && (
-                    <span className="hw-due">
-                      截止: {formatDate(new Date(hw.due_date))}
-                    </span>
-                  )}
-                </div>
-                {hw.description && <div className="hw-desc">{hw.description}</div>}
-              </div>
-              <div className="hw-actions">
-                <button className="btn-text btn-sm" onClick={() => { setEditing(hw); setShowForm(true); }}>
-                  编辑
-                </button>
-                <button className="btn-text danger btn-sm" onClick={() => handleDelete(hw.id)}>
-                  删除
-                </button>
-              </div>
-            </div>
-          ))}
+          {sortedHomework.map(hw => renderItem(hw))}
         </div>
       )}
     </div>

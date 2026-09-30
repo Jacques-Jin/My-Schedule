@@ -1218,7 +1218,32 @@ body {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 12px;
 }
+.homework-header.grouped { justify-content: flex-end; }
 .homework-header h3 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+
+/* Homework page */
+.homework-page-header { margin-bottom: 12px; }
+.homework-page-header h2 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+.homework-groups { display: flex; flex-direction: column; gap: 14px; }
+.hw-group-title {
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--color-text-secondary); margin-bottom: 6px;
+}
+.hw-group-overdue .hw-group-title { color: var(--color-danger); }
+.hw-group-dueToday .hw-group-title { color: var(--color-warning); }
+.homework-item.overdue { border-left: 3px solid var(--color-danger); }
+.homework-item.overdue .hw-due { color: var(--color-danger); font-weight: 500; }
+.hw-group-done {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+.hw-group-done > summary {
+  cursor: pointer; list-style: none; user-select: none;
+}
+.hw-group-done > summary::-webkit-details-marker { display: none; }
+.hw-group-done > summary::before { content: "▸ "; }
+.hw-group-done[open] > summary::before { content: "▾ "; }
+.hw-group-done > .homework-items { margin-top: 8px; }
 .homework-items { display: flex; flex-direction: column; gap: 8px; }
 .homework-item {
   display: flex; align-items: flex-start; gap: 10px;
