@@ -6,9 +6,9 @@
 /* ---- Dark Design Tokens ---- */
 [data-theme="dark-glass"] {
   /* Surface & Glass */
-  --glass-bg: rgba(32, 32, 50, 0.45);
-  --glass-bg-hover: rgba(44, 44, 66, 0.55);
-  --glass-bg-active: rgba(56, 56, 80, 0.6);
+  --glass-bg: rgba(21, 21, 36, 0.72);
+  --glass-bg-hover: rgba(32, 32, 52, 0.8);
+  --glass-bg-active: rgba(42, 42, 66, 0.85);
   --glass-border: rgba(255, 255, 255, 0.14);
   --glass-border-subtle: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
@@ -37,15 +37,10 @@
 }
 
 /* globals.css 的 body { color: var(--foreground) } 优先级更高，
-   会令继承文字在深色背景下呈近黑色，此处用更高优先级覆盖 */
+   会令继承文字在深色背景下呈近黑色，此处用更高优先级覆盖。
+   环境光晕直接画在 body 上：body 背景会传播到画布层，永远位于内容之下；
+   body::before 的 z-index:-1 会被不透明 body 背景遮挡，故在深色主题停用 */
 [data-theme="dark-glass"] body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-}
-
-/* ---- Dark Ambient Background ----
-   高亮度紫/蓝/粉光晕，衬托毛玻璃半透明质感 */
-[data-theme="dark-glass"] body::before {
   background-color: #12121f;
   background-image:
     radial-gradient(ellipse 75% 55% at 12% 16%, rgba(147, 102, 255, 0.5) 0%, transparent 62%),
@@ -53,6 +48,11 @@
     radial-gradient(ellipse 70% 60% at 50% 90%, rgba(255, 82, 176, 0.35) 0%, transparent 58%),
     radial-gradient(ellipse 55% 45% at 78% 60%, rgba(96, 165, 250, 0.32) 0%, transparent 52%),
     radial-gradient(ellipse 45% 40% at 22% 68%, rgba(192, 132, 252, 0.34) 0%, transparent 52%);
+  background-attachment: fixed;
+  color: var(--color-text);
+}
+[data-theme="dark-glass"] body::before {
+  background: none;
 }
 
 /* ---- Dark Navigation ---- */
@@ -270,7 +270,14 @@
   border-color: var(--glass-border);
 }
 [data-theme="dark-glass"] .rb-label {
+  background: rgba(255, 255, 255, 0.02);
   color: var(--color-text-secondary);
+}
+[data-theme="dark-glass"] .rb-day {
+  background: rgba(255, 255, 255, 0.02);
+}
+[data-theme="dark-glass"] .rb-day.rb-holiday {
+  background: rgba(255, 69, 58, 0.08);
 }
 [data-theme="dark-glass"] .rb-chip {
   background: rgba(139, 156, 240, 0.15);
@@ -666,4 +673,104 @@
 /* ---- Dark Focus ---- */
 [data-theme="dark-glass"] :focus-visible {
   outline-color: var(--color-primary);
+}
+
+/* ============================================================
+   可读性修正 v34
+   ============================================================ */
+
+/* ---- 彩色玻璃按钮：以靛蓝饱和度提亮，而非加白 ---- */
+[data-theme="dark-glass"] .tb-btn:not(.tb-btn-primary),
+[data-theme="dark-glass"] .filter-chip:not(.active),
+[data-theme="dark-glass"] .day-chip:not(.active),
+[data-theme="dark-glass"] .ws-btn,
+[data-theme="dark-glass"] .ws-semester-select,
+[data-theme="dark-glass"] .batch-btn:not(.danger),
+[data-theme="dark-glass"] .tf-btn:not(.primary):not(.danger),
+[data-theme="dark-glass"] .cf-wd-btn:not(.active),
+[data-theme="dark-glass"] .tf-wd-btn:not(.active),
+[data-theme="dark-glass"] .tf-week-btn:not(.active),
+[data-theme="dark-glass"] .day-mark-btn,
+[data-theme="dark-glass"] .campaign-tool-btn,
+[data-theme="dark-glass"] .do-kind-btn:not(.danger) {
+  background: linear-gradient(180deg, rgba(139, 156, 240, 0.3), rgba(104, 92, 224, 0.16));
+  border-color: rgba(139, 156, 240, 0.45);
+  color: #d9e0ff;
+  box-shadow: var(--glass-highlight), 0 1px 8px rgba(139, 156, 240, 0.28);
+}
+[data-theme="dark-glass"] .tb-btn:not(.tb-btn-primary):hover,
+[data-theme="dark-glass"] .filter-chip:not(.active):hover,
+[data-theme="dark-glass"] .day-chip:not(.active):hover,
+[data-theme="dark-glass"] .ws-btn:hover,
+[data-theme="dark-glass"] .batch-btn:not(.danger):hover,
+[data-theme="dark-glass"] .tf-btn:not(.primary):not(.danger):hover,
+[data-theme="dark-glass"] .cf-wd-btn:not(.active):hover,
+[data-theme="dark-glass"] .tf-wd-btn:not(.active):hover,
+[data-theme="dark-glass"] .tf-week-btn:not(.active):hover,
+[data-theme="dark-glass"] .day-mark-btn:hover,
+[data-theme="dark-glass"] .campaign-tool-btn:hover,
+[data-theme="dark-glass"] .do-kind-btn:not(.danger):hover {
+  background: linear-gradient(180deg, rgba(160, 175, 255, 0.42), rgba(122, 108, 240, 0.26));
+  border-color: rgba(170, 184, 255, 0.65);
+  color: #eef1ff;
+  box-shadow: var(--glass-highlight), 0 2px 12px rgba(139, 156, 240, 0.4);
+}
+
+/* ---- 选中态：高亮靛蓝实心，强对比 ---- */
+[data-theme="dark-glass"] .filter-chip.active,
+[data-theme="dark-glass"] .view-btn.active,
+[data-theme="dark-glass"] .settings-tab.active,
+[data-theme="dark-glass"] .nav-tab.active,
+[data-theme="dark-glass"] .cf-wd-btn.active,
+[data-theme="dark-glass"] .tf-wd-btn.active,
+[data-theme="dark-glass"] .tf-week-btn.active,
+[data-theme="dark-glass"] .day-chip.active {
+  background: linear-gradient(180deg, #96a5f5, #6d7fe0);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--glass-highlight), 0 2px 10px rgba(139, 156, 240, 0.5);
+}
+
+/* ---- 切换轨道：深色底衬，凸显选中 pill ---- */
+[data-theme="dark-glass"] .nav-tabs,
+[data-theme="dark-glass"] .view-toggle,
+[data-theme="dark-glass"] .settings-tabs,
+[data-theme="dark-glass"] .tasks-tabs {
+  background: rgba(10, 10, 20, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- 今日时间线：提高不透明度，修复过透不可读 ---- */
+[data-theme="dark-glass"] .timeline-item {
+  background: rgba(20, 20, 36, 0.82);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+[data-theme="dark-glass"] .timeline-item.past { opacity: 0.78; }
+[data-theme="dark-glass"] .timeline-item.current {
+  background: rgba(139, 156, 240, 0.28);
+  border-color: rgba(139, 156, 240, 0.55);
+}
+[data-theme="dark-glass"] .home-todo-item {
+  background: rgba(20, 20, 36, 0.82);
+}
+[data-theme="dark-glass"] .task-item {
+  background: rgba(20, 20, 36, 0.82);
+}
+
+/* ---- 周课表：格子默认深色，悬停才高亮 ---- */
+[data-theme="dark-glass"] .wg-cell {
+  background: rgba(8, 8, 16, 0.45);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark-glass"] .wg-cell:hover {
+  background: rgba(139, 156, 240, 0.25);
+}
+[data-theme="dark-glass"] .wg-cell.holiday-cell {
+  background: rgba(255, 69, 58, 0.08);
+}
+[data-theme="dark-glass"] .wg-cell.holiday-cell:hover {
+  background: rgba(255, 69, 58, 0.18);
+}
+[data-theme="dark-glass"] .wg-cell.drag-over {
+  background: rgba(139, 156, 240, 0.32);
 }
