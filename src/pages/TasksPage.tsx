@@ -123,7 +123,7 @@ export default function TasksPage() {
     for (const task of filteredTasks) {
       const rule = JSON.parse(task.repeat_rule || '{"type":"none"}');
       const isRepeat = rule.type !== "none";
-      const isDone = isRepeat ? isTaskDone(task, task.date) : task.done;
+      const isDone = isRepeat ? isTaskDone(task, todayStr) : task.done;
 
       if (isDone) {
         groups.done.push(task);
@@ -270,7 +270,7 @@ export default function TasksPage() {
                 key={task.id}
                 task={task}
                 campaigns={campaigns}
-                done={task.done || (JSON.parse(task.repeat_rule || '{"type":"none"}').type !== "none" && isTaskDone(task, task.date))}
+                done={task.done || (JSON.parse(task.repeat_rule || '{"type":"none"}').type !== "none" && isTaskDone(task, todayStr))}
                 overdue={JSON.parse(task.repeat_rule || '{"type":"none"}').type === "none" && !task.done && task.date < todayStr}
                 onToggle={() => handleToggle(task)}
                 onEdit={() => handleEdit(task)}
