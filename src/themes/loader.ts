@@ -1,7 +1,15 @@
 import { getTheme } from "./registry";
+import { Capacitor } from "@capacitor/core";
 
 const STORAGE_KEY = "app-theme";
 let loadedThemeLink: HTMLLinkElement | null = null;
+
+async function updateStatusBar(themeId: string) {
+  if (!Capacitor.isNativePlatform()) return;
+  const { StatusBar, Style } = await import("@capacitor/status-bar");
+  const isDark = themeId === "dark-glass" || themeId === "paper-terminal";
+  await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+}
 
 export function applyTheme(themeId: string): void {
   // Remove previously loaded theme CSS
@@ -27,6 +35,7 @@ export function applyTheme(themeId: string): void {
     }
   }
   localStorage.setItem(STORAGE_KEY, themeId);
+  updateStatusBar(themeId);
 }
 
 export function getStoredTheme(): string {

@@ -1,4 +1,6 @@
-const BASE = "/functions/v1/app";
+import { API_BASE } from "./config";
+
+const BASE = API_BASE;
 
 export async function requestJson(action: string, payload?: unknown): Promise<any> {
   const isGet = payload === undefined;

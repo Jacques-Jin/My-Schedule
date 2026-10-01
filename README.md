@@ -74,3 +74,40 @@ my-schedule/
 - 端口：API 8000，前端 5173
 - 如端口被占用，先用 `停止.bat` 清理旧进程
 - 设置页 → 数据备份 → "清除本地数据"可重置 IndexedDB
+
+## 安卓 App
+
+使用 Capacitor 8 将 Web 应用打包为安卓 APK（内置模式，Web 资源打包进 APK）。
+
+### 环境要求
+
+- JDK 21（推荐 OpenJDK 21，华为镜像可下载）
+- Android SDK（API 34/35、build-tools 35+）
+- `JAVA_HOME` 和 `ANDROID_HOME` 环境变量已配置
+
+### 一键打包
+
+```bash
+scripts/build-android.bat    # Windows CMD
+scripts/build-android.sh     # Git Bash
+```
+
+产出：`android/app/build/outputs/apk/release/app-release.apk`（~15MB）
+
+### 手动构建
+
+```bash
+npm run build                          # 构建 Web 产物
+npx cap sync android                   # 同步到 Android 工程
+cd android && ./gradlew assembleRelease # 打签名 release APK
+```
+
+### 安装
+
+手机开启「允许安装未知应用」→ 传输 APK → 点击安装。
+
+### 关键配置
+
+- `capacitor.config.ts`：Capacitor 配置（appId、webDir、插件）
+- `android/keystore.properties`：签名配置（不入库）
+- `src/lib/config.ts`：运行时 API 基址切换（Web 相对路径 / 原生绝对地址）

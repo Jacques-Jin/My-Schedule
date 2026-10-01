@@ -1,5 +1,7 @@
 import * as db from "./db";
 import { api } from "./api";
+import { Capacitor } from "@capacitor/core";
+import { Network } from "@capacitor/network";
 
 export type SyncStatus = "synced" | "syncing" | "offline" | "error";
 
@@ -136,6 +138,18 @@ export function initSync() {
     status = "offline";
     notify();
   });
+
+  if (Capacitor.isNativePlatform()) {
+    Network.addListener("networkStatusChange", (s) => {
+      if (s.connected) {
+        syncNow();
+      } else {
+        status = "offline";
+        notify();
+      }
+    });
+  }
+
   refreshPending();
   syncNow();
 }

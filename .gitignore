@@ -8,3 +8,12 @@ dist/
 .qoder-sites/
 .qoder-sites.json
 data/backups/*.json
+
+# Capacitor / Android
+android/app/build/
+android/app/src/main/assets/
+android/app/src/main/res/raw/
+*.keystore
+*.jks
+keystore.properties
+vibe_images/

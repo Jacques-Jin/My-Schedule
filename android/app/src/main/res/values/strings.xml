@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">我的日程</string>
+    <string name="title_activity_main">我的日程</string>
+    <string name="package_name">com.jack.myschedule</string>
+    <string name="custom_url_scheme">com.jack.myschedule</string>
+</resources>
