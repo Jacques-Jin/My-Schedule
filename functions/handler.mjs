@@ -168,7 +168,7 @@ const actions = {
       ["countdowns", "id,name,target_date"],
       ["homework", "id,title,course_id,due_date,description,completed,created_at"],
       ["day_overrides", "id,date,kind,follow_weekday,name,created_at"],
-      ["settings", "id,remind_minutes,overlay_repeat,theme"],
+      ["settings", "id,remind_minutes,overlay_repeat"],
     ];
     const result = {};
     for (const [table, cols] of tables) {
@@ -484,7 +484,7 @@ const actions = {
   },
 
   "settings.save": async ({ supabase, payload }) => {
-    const fields = ["remind_minutes", "overlay_repeat", "theme"];
+    const fields = ["remind_minutes", "overlay_repeat"];
     const data = pick(payload, fields);
     const { data: row, error } = await supabase.from("settings").update(data).eq("id", 1).select("*").single();
     if (error || !row) {
