@@ -142,6 +142,11 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+function countItems(data: any): number {
+  if (!data) return 0;
+  return Object.values(data).reduce((sum: number, v: any) => sum + (Array.isArray(v) ? v.length : 0), 0);
+}
+
 const initialState: State = {
   semesters: [], periodSlots: [], holidays: [], courses: [],
   campaigns: [], tasks: [], completions: [], countdowns: [], homework: [],
@@ -195,8 +200,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "bootstrap", data: cached });
       }
       const data = await api.bootstrap();
-      await db.cacheBootstrap(data);
-      dispatch({ type: "bootstrap", data });
+      if (!hasCache || countItems(data) >= countItems(cached)) {
+        await db.cacheBootstrap(data);
+        dispatch({ type: "bootstrap", data });
+      }
     } catch {
       if (!hasCache) {
         dispatch({ type: "error" });
