@@ -487,16 +487,18 @@ const actions = {
   },
 
   "settings.save": async ({ supabase, payload }) => {
-    const fields = ["remind_minutes", "overlay_repeat", "theme"];
-    const data = pick(payload, fields);
-    const { data: row, error } = await supabase.from("settings").update(data).eq("id", 1).select("*").single();
-    if (error || !row) {
-      const { data: inserted, error: e2 } = await supabase.from("settings").insert({ id: 1, ...data }).select("*").single();
-      if (e2) throw new Error("settings_save_failed");
-      return inserted;
+    const dbFields = ["remind_minutes", "overlay_repeat"];
+    const dbData = pick(payload, dbFields);
+    if (Object.keys(dbData).length > 0) {
+      const { data: row, error } = await supabase.from("settings").update(dbData).eq("id", 1).select("*").single();
+      if (error || !row) {
+        const { data: inserted, error: e2 } = await supabase.from("settings").insert({ id: 1, ...dbData }).select("*").single();
+        if (e2) throw new Error("settings_save_failed");
+        return { ...inserted, theme: payload.theme || "default" };
+      }
+      return { ...row, theme: payload.theme || "default" };
     }
-    if (row.theme === undefined) row.theme = payload.theme || "default";
-    return row;
+    return { id: 1, remind_minutes: 10, overlay_repeat: 3, theme: payload.theme || "default" };
   },
 
   "data.export": async ({ supabase }) => {
