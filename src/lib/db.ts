@@ -75,6 +75,7 @@ const REVERSE_KEY_MAP: Record<string, string> = {
 };
 
 export async function cacheBootstrap(data: any): Promise<void> {
+  if (!data) return;
   const db = await getDB();
   const tx = db.transaction([...STORE_NAMES], "readwrite");
   for (const name of STORE_NAMES) {
