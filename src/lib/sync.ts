@@ -68,15 +68,9 @@ export async function syncNow() {
         status = "offline";
       } else {
         await db.removeFromSyncQueue(item.id);
+        status = "error";
       }
       await refreshPending();
-      if (pendingCount === 0 && !isNetworkError) {
-        status = "synced";
-        notify();
-      } else if (!isNetworkError) {
-        status = "error";
-        notify();
-      }
       return;
     }
   }

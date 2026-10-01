@@ -1,3 +1,6 @@
+// Generate UUID for inserts — DB columns lack DEFAULT gen_random_uuid()
+const uid = () => crypto.randomUUID();
+
 // Validation helpers — whitelist fields, enforce types
 function validateSemester(p) {
   if (!p.name || typeof p.name !== "string") return "invalid_name";
@@ -133,22 +136,22 @@ async function seedIfEmpty(supabase) {
   if (data && data.length > 0) return { seeded: false };
 
   const { data: sem } = await supabase.from("semesters")
-    .insert({ ...SEED.semester, created_at: new Date().toISOString() })
+    .insert({ id: uid(), ...SEED.semester, created_at: new Date().toISOString() })
     .select("id")
     .single();
   if (!sem) throw new Error("seed_semester_failed");
 
   for (const p of SEED.periods) {
-    await supabase.from("period_slots").insert(p);
+    await supabase.from("period_slots").insert({ id: uid(), ...p });
   }
   for (const h of SEED.holidays) {
-    await supabase.from("holidays").insert(h);
+    await supabase.from("holidays").insert({ id: uid(), ...h });
   }
   for (const c of SEED.courses) {
-    await supabase.from("courses").insert({ ...c, semester_id: sem.id });
+    await supabase.from("courses").insert({ id: uid(), ...c, semester_id: sem.id });
   }
   for (const t of SEED.tasks) {
-    await supabase.from("tasks").insert({ ...t, campaign_id: null, created_at: new Date().toISOString() });
+    await supabase.from("tasks").insert({ id: uid(), ...t, campaign_id: null, created_at: new Date().toISOString() });
   }
   await supabase.from("settings").insert({ id: 1, ...SEED.settings });
 
@@ -208,7 +211,7 @@ const actions = {
       return row;
     }
     const { data: row, error } = await supabase.from("semesters")
-      .insert({ ...data, created_at: new Date().toISOString() })
+      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
       .select("*").single();
     if (error) throw new Error("semester_insert_failed");
     return row;
@@ -241,7 +244,7 @@ const actions = {
       if (error) throw new Error("holiday_update_failed");
       return row;
     }
-    const { data: row, error } = await supabase.from("holidays").insert(data).select("*").single();
+    const { data: row, error } = await supabase.from("holidays").insert({ id: uid(), ...data }).select("*").single();
     if (error) throw new Error("holiday_insert_failed");
     return row;
   },
@@ -267,7 +270,7 @@ const actions = {
         results.push(row);
       } else {
         const { data: row } = await supabase.from("period_slots")
-          .insert({ slot_no: s.slot_no, start_time: s.start_time, end_time: s.end_time })
+          .insert({ id: uid(), slot_no: s.slot_no, start_time: s.start_time, end_time: s.end_time })
           .select("*").single();
         results.push(row);
       }
@@ -286,7 +289,7 @@ const actions = {
       return row;
     }
     if (!data.semester_id) throw new Error("missing_semester_id");
-    const { data: row, error } = await supabase.from("courses").insert(data).select("*").single();
+    const { data: row, error } = await supabase.from("courses").insert({ id: uid(), ...data }).select("*").single();
     if (error) throw new Error("course_insert_failed");
     return row;
   },
@@ -309,7 +312,7 @@ const actions = {
       return row;
     }
     const { data: row, error } = await supabase.from("tasks")
-      .insert({ ...data, created_at: new Date().toISOString() })
+      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
       .select("*").single();
     if (error) throw new Error("task_insert_failed");
     return row;
@@ -338,7 +341,7 @@ const actions = {
             const date = opPayload?.date;
             if (!date) throw new Error("missing_date_for_repeat_task");
             if (op === "done") {
-              await supabase.from("task_completions").insert({ task_id: id, date });
+              await supabase.from("task_completions").insert({ id: uid(), task_id: id, date });
             } else {
               await supabase.from("task_completions").delete().eq("task_id", id).eq("date", date);
             }
@@ -377,7 +380,7 @@ const actions = {
     const rule = JSON.parse(task.repeat_rule || '{"type":"none"}');
     if (rule.type !== "none") {
       if (payload.done) {
-        await supabase.from("task_completions").insert({ task_id: payload.id, date: payload.date });
+        await supabase.from("task_completions").insert({ id: uid(), task_id: payload.id, date: payload.date });
       } else {
         await supabase.from("task_completions").delete().eq("task_id", payload.id).eq("date", payload.date);
       }
@@ -398,7 +401,7 @@ const actions = {
       return row;
     }
     const { data: row, error } = await supabase.from("campaigns")
-      .insert({ ...data, created_at: new Date().toISOString() })
+      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
       .select("*").single();
     if (error) throw new Error("campaign_insert_failed");
     return row;
@@ -430,7 +433,7 @@ const actions = {
       if (error) throw new Error("countdown_update_failed");
       return row;
     }
-    const { data: row, error } = await supabase.from("countdowns").insert(data).select("*").single();
+    const { data: row, error } = await supabase.from("countdowns").insert({ id: uid(), ...data }).select("*").single();
     if (error) throw new Error("countdown_insert_failed");
     return row;
   },
@@ -464,7 +467,7 @@ const actions = {
       return row;
     }
     const { data: row, error } = await supabase.from("day_overrides")
-      .insert({ ...data, created_at: new Date().toISOString() })
+      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
       .select("*").single();
     if (error) throw new Error("day_override_insert_failed");
     return row;
@@ -640,7 +643,7 @@ const actions = {
       if (error) throw new Error("update_homework_failed");
       return data;
     }
-    const insertRow = { completed: false, created_at: new Date().toISOString(), ...row };
+    const insertRow = { id: uid(), completed: false, created_at: new Date().toISOString(), ...row };
     const { data, error } = await supabase.from("homework").insert(insertRow).select().single();
     if (error) throw new Error("insert_homework_failed");
     return data;
