@@ -5,6 +5,7 @@
 
 /* ---- Dark Design Tokens ---- */
 [data-theme="dark-glass"] {
+  color-scheme: dark;
   /* Surface & Glass */
   --glass-bg: rgba(21, 21, 36, 0.72);
   --glass-bg-hover: rgba(32, 32, 52, 0.8);
