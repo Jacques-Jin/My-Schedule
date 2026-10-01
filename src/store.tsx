@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useCallback, useEffect, type ReactNode } from "react";
 import { api } from "./lib/api";
+import * as db from "./lib/db";
 
 export interface Semester { id: string; name: string; start_monday: string; total_weeks: number; is_current: boolean }
 export interface Holiday { id: string; name: string; start_date: string; end_date: string }
@@ -184,11 +185,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const refresh = useCallback(async () => {
+    let hasCache = false;
     try {
+      const cached = await db.loadFromCache();
+      if (cached) {
+        hasCache = true;
+        dispatch({ type: "bootstrap", data: cached });
+      }
       const data = await api.bootstrap();
+      await db.cacheBootstrap(data);
       dispatch({ type: "bootstrap", data });
     } catch {
-      dispatch({ type: "error" });
+      if (!hasCache) {
+        dispatch({ type: "error" });
+      }
     }
   }, []);
 
@@ -202,57 +212,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const saveSemester = useCallback(async (data: any) => {
     const row = await api.semesterSave(data);
     dispatch({ type: "upsert_semester", data: row });
+    await db.put("semesters", row);
     return row;
   }, []);
 
   const setCurrentSemester = useCallback(async (id: string) => {
     const prev = state.semesters;
     dispatch({ type: "set_current_semester", id });
-    try { await api.semesterSetCurrent(id); } catch { dispatch({ type: "bootstrap", data: { ...state, semesters: prev } }); }
+    try {
+      await api.semesterSetCurrent(id);
+      const updated = prev.map(s => ({ ...s, is_current: s.id === id }));
+      await db.putMany("semesters", updated);
+    } catch { dispatch({ type: "bootstrap", data: { ...state, semesters: prev } }); }
   }, [state]);
 
   const deleteSemester = useCallback(async (id: string) => {
     dispatch({ type: "remove_semester", id });
-    try { await api.semesterDelete(id); } catch { await refresh(); }
+    try { await api.semesterDelete(id); await db.remove("semesters", id); } catch { await refresh(); }
   }, [refresh]);
 
   const saveHoliday = useCallback(async (data: any) => {
     const row = await api.holidaySave(data);
     dispatch({ type: "upsert_holiday", data: row });
+    await db.put("holidays", row);
     return row;
   }, []);
 
   const deleteHoliday = useCallback(async (id: string) => {
     dispatch({ type: "remove_holiday", id });
-    try { await api.holidayDelete(id); } catch { await refresh(); }
+    try { await api.holidayDelete(id); await db.remove("holidays", id); } catch { await refresh(); }
   }, [refresh]);
 
   const savePeriods = useCallback(async (slots: any[]) => {
     const rows = await api.periodSave(slots);
     dispatch({ type: "set_period_slots", data: rows });
+    await db.clearStore("period_slots");
+    await db.putMany("period_slots", rows);
     return rows;
   }, []);
 
   const saveCourse = useCallback(async (data: any) => {
     const row = await api.courseSave(data);
     dispatch({ type: "upsert_course", data: row });
+    await db.put("courses", row);
     return row;
   }, []);
 
   const deleteCourse = useCallback(async (id: string) => {
     dispatch({ type: "remove_course", id });
-    try { await api.courseDelete(id); } catch { await refresh(); }
+    try { await api.courseDelete(id); await db.remove("courses", id); } catch { await refresh(); }
   }, [refresh]);
 
   const saveTask = useCallback(async (data: any) => {
     const row = await api.taskSave(data);
     dispatch({ type: "upsert_task", data: row });
+    await db.put("tasks", row);
     return row;
   }, []);
 
   const deleteTask = useCallback(async (id: string) => {
     dispatch({ type: "remove_task", id });
-    try { await api.taskDelete(id); } catch { await refresh(); }
+    try { await api.taskDelete(id); await db.remove("tasks", id); } catch { await refresh(); }
   }, [refresh]);
 
   const batchTasks = useCallback(async (params: any) => {
@@ -275,7 +295,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
       }
     }
-    try { await api.taskBatch(params); } catch { await refresh(); }
+    try { await api.taskBatch(params); } catch { await refresh(); return; }
+    await refresh();
   }, [state, refresh]);
 
   const completeTask = useCallback(async ({ id, date, done }: { id: string; date: string; done: boolean }) => {
@@ -284,62 +305,72 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const rule = JSON.parse(task.repeat_rule || '{"type":"none"}');
     if (rule.type !== "none") {
       if (done) {
-        dispatch({ type: "upsert_completion", data: { id: crypto.randomUUID(), task_id: id, date } });
+        const comp = { id: crypto.randomUUID(), task_id: id, date };
+        dispatch({ type: "upsert_completion", data: comp });
+        try { await api.taskComplete({ id, date, done }); await db.put("task_completions", comp); } catch { await refresh(); }
       } else {
         dispatch({ type: "remove_completion", task_id: id, date });
+        try { await api.taskComplete({ id, date, done }); await db.remove("task_completions", `${id}:${date}`); } catch { await refresh(); }
       }
     } else {
-      dispatch({ type: "upsert_task", data: { ...task, done } });
+      const updated = { ...task, done };
+      dispatch({ type: "upsert_task", data: updated });
+      try { await api.taskComplete({ id, date, done }); await db.put("tasks", updated); } catch { await refresh(); }
     }
-    try { await api.taskComplete({ id, date, done }); } catch { await refresh(); }
   }, [state.tasks, refresh]);
 
   const saveCampaign = useCallback(async (data: any) => {
     const row = await api.campaignSave(data);
     dispatch({ type: "upsert_campaign", data: row });
+    await db.put("campaigns", row);
     return row;
   }, []);
 
   const deleteCampaign = useCallback(async (id: string) => {
     dispatch({ type: "remove_campaign", id });
-    try { await api.campaignDelete(id); } catch { await refresh(); }
+    try { await api.campaignDelete(id); await db.remove("campaigns", id); } catch { await refresh(); }
   }, [refresh]);
 
   const attachTasks = useCallback(async (campaignId: string | null, taskIds: string[]) => {
     dispatch({ type: "attach_tasks", campaignId, taskIds });
-    try { await api.campaignAttach({ campaignId, taskIds }); } catch { await refresh(); }
-  }, []);
+    try { await api.campaignAttach({ campaignId, taskIds }); } catch { await refresh(); return; }
+    await refresh();
+  }, [refresh]);
 
   const saveCountdown = useCallback(async (data: any) => {
     const row = await api.countdownSave(data);
     dispatch({ type: "upsert_countdown", data: row });
+    await db.put("countdowns", row);
     return row;
   }, []);
 
   const deleteCountdown = useCallback(async (id: string) => {
     dispatch({ type: "remove_countdown", id });
-    try { await api.countdownDelete(id); } catch { await refresh(); }
+    try { await api.countdownDelete(id); await db.remove("countdowns", id); } catch { await refresh(); }
   }, [refresh]);
 
   const saveHomework = useCallback(async (data: any) => {
     const row = await api.homeworkSave(data);
     dispatch({ type: "upsert_homework", data: row });
+    await db.put("homework", row);
     return row;
   }, []);
 
   const deleteHomework = useCallback(async (id: string) => {
     dispatch({ type: "remove_homework", id });
-    try { await api.homeworkDelete(id); } catch { await refresh(); }
+    try { await api.homeworkDelete(id); await db.remove("homework", id); } catch { await refresh(); }
   }, [refresh]);
 
   const completeHomework = useCallback(async (params: { id: string; completed: boolean }) => {
-    dispatch({ type: "upsert_homework", data: { ...state.homework.find(h => h.id === params.id), completed: params.completed } as Homework });
-    try { await api.homeworkComplete(params); } catch { await refresh(); }
-  }, [state.homework]);
+    const updated = { ...state.homework.find(h => h.id === params.id), completed: params.completed } as Homework;
+    dispatch({ type: "upsert_homework", data: updated });
+    try { await api.homeworkComplete(params); await db.put("homework", updated); } catch { await refresh(); }
+  }, [state.homework, refresh]);
 
   const saveDayOverride = useCallback(async (data: any) => {
     const row = await api.dayOverrideSave(data);
     dispatch({ type: "upsert_day_override", data: row });
+    await db.put("day_overrides", row);
     return row;
   }, []);
 
@@ -350,20 +381,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const existing = state.dayOverrides.find(o => o.date === params.date);
       if (existing) dispatch({ type: "remove_day_override", id: existing.id });
     }
-    try { await api.dayOverrideDelete(params); } catch { await refresh(); }
-  }, [state.dayOverrides]);
+    try { await api.dayOverrideDelete(params); if (params.id) await db.remove("day_overrides", params.id); } catch { await refresh(); }
+  }, [state.dayOverrides, refresh]);
 
   const saveSettings = useCallback(async (data: any) => {
     const row = await api.settingsSave(data);
     dispatch({ type: "update_settings", data: row });
+    await db.put("settings", row);
     return row;
   }, []);
 
   const exportData = useCallback(async () => {
+    const cached = await db.exportAllData();
+    if (cached) return cached;
     return await api.dataExport();
   }, []);
 
   const importData = useCallback(async (data: any) => {
+    await db.importAllData(data);
     await api.dataImport(data);
     await refresh();
   }, [refresh]);
