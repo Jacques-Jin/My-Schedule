@@ -62,9 +62,21 @@ export async function syncNow() {
     try {
       await callApi(item.action, item.payload);
       await db.removeFromSyncQueue(item.id);
-    } catch {
-      status = "offline";
+    } catch (err: any) {
+      const isNetworkError = err instanceof TypeError || err?.message?.includes("fetch");
+      if (isNetworkError) {
+        status = "offline";
+      } else {
+        await db.removeFromSyncQueue(item.id);
+      }
       await refreshPending();
+      if (pendingCount === 0 && !isNetworkError) {
+        status = "synced";
+        notify();
+      } else if (!isNetworkError) {
+        status = "error";
+        notify();
+      }
       return;
     }
   }

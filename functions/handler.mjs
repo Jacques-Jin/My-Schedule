@@ -484,7 +484,7 @@ const actions = {
   },
 
   "settings.save": async ({ supabase, payload }) => {
-    const fields = ["remind_minutes", "overlay_repeat"];
+    const fields = ["remind_minutes", "overlay_repeat", "theme"];
     const data = pick(payload, fields);
     const { data: row, error } = await supabase.from("settings").update(data).eq("id", 1).select("*").single();
     if (error || !row) {

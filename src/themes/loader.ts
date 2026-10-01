@@ -20,7 +20,7 @@ export function applyTheme(themeId: string): void {
     if (theme.cssFile) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
-      link.href = `/src/themes/${theme.cssFile}`;
+      link.href = `/themes/${theme.cssFile}`;
       link.dataset.theme = themeId;
       document.head.appendChild(link);
       loadedThemeLink = link;
