@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useCallback, useEffect, type ReactNode } from "react";
 import { api } from "./lib/api";
 import * as db from "./lib/db";
+import * as sync from "./lib/sync";
 
 export interface Semester { id: string; name: string; start_monday: string; total_weeks: number; is_current: boolean }
 export interface Holiday { id: string; name: string; start_date: string; end_date: string }
@@ -176,6 +177,7 @@ interface StoreCtx {
   saveSettings: (data: any) => Promise<Settings>;
   exportData: () => Promise<any>;
   importData: (data: any) => Promise<void>;
+  clearLocalData: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -210,70 +212,81 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const saveSemester = useCallback(async (data: any) => {
-    const row = await api.semesterSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_semester", data: row });
     await db.put("semesters", row);
-    return row;
+    try { const saved = await api.semesterSave(data); return saved; }
+    catch { await sync.enqueue("semester.save", data); return row; }
   }, []);
 
   const setCurrentSemester = useCallback(async (id: string) => {
     const prev = state.semesters;
     dispatch({ type: "set_current_semester", id });
-    try {
-      await api.semesterSetCurrent(id);
-      const updated = prev.map(s => ({ ...s, is_current: s.id === id }));
-      await db.putMany("semesters", updated);
-    } catch { dispatch({ type: "bootstrap", data: { ...state, semesters: prev } }); }
+    const updated = prev.map(s => ({ ...s, is_current: s.id === id }));
+    await db.putMany("semesters", updated);
+    try { await api.semesterSetCurrent(id); }
+    catch { await sync.enqueue("semester.setCurrent", { id }); }
   }, [state]);
 
   const deleteSemester = useCallback(async (id: string) => {
     dispatch({ type: "remove_semester", id });
-    try { await api.semesterDelete(id); await db.remove("semesters", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("semesters", id);
+    try { await api.semesterDelete(id); }
+    catch { await sync.enqueue("semester.delete", { id }); }
+  }, []);
 
   const saveHoliday = useCallback(async (data: any) => {
-    const row = await api.holidaySave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_holiday", data: row });
     await db.put("holidays", row);
-    return row;
+    try { const saved = await api.holidaySave(data); return saved; }
+    catch { await sync.enqueue("holiday.save", data); return row; }
   }, []);
 
   const deleteHoliday = useCallback(async (id: string) => {
     dispatch({ type: "remove_holiday", id });
-    try { await api.holidayDelete(id); await db.remove("holidays", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("holidays", id);
+    try { await api.holidayDelete(id); }
+    catch { await sync.enqueue("holiday.delete", { id }); }
+  }, []);
 
   const savePeriods = useCallback(async (slots: any[]) => {
-    const rows = await api.periodSave(slots);
-    dispatch({ type: "set_period_slots", data: rows });
+    dispatch({ type: "set_period_slots", data: slots });
     await db.clearStore("period_slots");
-    await db.putMany("period_slots", rows);
-    return rows;
+    await db.putMany("period_slots", slots);
+    try { const saved = await api.periodSave(slots); return saved; }
+    catch { await sync.enqueue("period.save", slots); return slots; }
   }, []);
 
   const saveCourse = useCallback(async (data: any) => {
-    const row = await api.courseSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_course", data: row });
     await db.put("courses", row);
-    return row;
+    try { const saved = await api.courseSave(data); return saved; }
+    catch { await sync.enqueue("course.save", data); return row; }
   }, []);
 
   const deleteCourse = useCallback(async (id: string) => {
     dispatch({ type: "remove_course", id });
-    try { await api.courseDelete(id); await db.remove("courses", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("courses", id);
+    try { await api.courseDelete(id); }
+    catch { await sync.enqueue("course.delete", { id }); }
+  }, []);
 
   const saveTask = useCallback(async (data: any) => {
-    const row = await api.taskSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_task", data: row });
     await db.put("tasks", row);
-    return row;
+    try { const saved = await api.taskSave(data); return saved; }
+    catch { await sync.enqueue("task.save", data); return row; }
   }, []);
 
   const deleteTask = useCallback(async (id: string) => {
     dispatch({ type: "remove_task", id });
-    try { await api.taskDelete(id); await db.remove("tasks", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("tasks", id);
+    try { await api.taskDelete(id); }
+    catch { await sync.enqueue("task.delete", { id }); }
+  }, []);
 
   const batchTasks = useCallback(async (params: any) => {
     const { ids, op, payload: opPayload } = params;
@@ -295,7 +308,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
       }
     }
-    try { await api.taskBatch(params); } catch { await refresh(); return; }
+    try { await api.taskBatch(params); }
+    catch { await sync.enqueue("task.batch", params); }
     await refresh();
   }, [state, refresh]);
 
@@ -307,88 +321,113 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (done) {
         const comp = { id: crypto.randomUUID(), task_id: id, date };
         dispatch({ type: "upsert_completion", data: comp });
-        try { await api.taskComplete({ id, date, done }); await db.put("task_completions", comp); } catch { await refresh(); }
+        await db.put("task_completions", comp);
+        try { await api.taskComplete({ id, date, done }); }
+        catch { await sync.enqueue("task.complete", { id, date, done }); }
       } else {
         dispatch({ type: "remove_completion", task_id: id, date });
-        try { await api.taskComplete({ id, date, done }); await db.remove("task_completions", `${id}:${date}`); } catch { await refresh(); }
+        await db.remove("task_completions", `${id}:${date}`);
+        try { await api.taskComplete({ id, date, done }); }
+        catch { await sync.enqueue("task.complete", { id, date, done }); }
       }
     } else {
       const updated = { ...task, done };
       dispatch({ type: "upsert_task", data: updated });
-      try { await api.taskComplete({ id, date, done }); await db.put("tasks", updated); } catch { await refresh(); }
+      await db.put("tasks", updated);
+      try { await api.taskComplete({ id, date, done }); }
+      catch { await sync.enqueue("task.complete", { id, date, done }); }
     }
-  }, [state.tasks, refresh]);
+  }, [state.tasks]);
 
   const saveCampaign = useCallback(async (data: any) => {
-    const row = await api.campaignSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_campaign", data: row });
     await db.put("campaigns", row);
-    return row;
+    try { const saved = await api.campaignSave(data); return saved; }
+    catch { await sync.enqueue("campaign.save", data); return row; }
   }, []);
 
   const deleteCampaign = useCallback(async (id: string) => {
     dispatch({ type: "remove_campaign", id });
-    try { await api.campaignDelete(id); await db.remove("campaigns", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("campaigns", id);
+    try { await api.campaignDelete(id); }
+    catch { await sync.enqueue("campaign.delete", { id }); }
+  }, []);
 
   const attachTasks = useCallback(async (campaignId: string | null, taskIds: string[]) => {
     dispatch({ type: "attach_tasks", campaignId, taskIds });
-    try { await api.campaignAttach({ campaignId, taskIds }); } catch { await refresh(); return; }
+    try { await api.campaignAttach({ campaignId, taskIds }); }
+    catch { await sync.enqueue("campaign.attach", { campaignId, taskIds }); }
     await refresh();
   }, [refresh]);
 
   const saveCountdown = useCallback(async (data: any) => {
-    const row = await api.countdownSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_countdown", data: row });
     await db.put("countdowns", row);
-    return row;
+    try { const saved = await api.countdownSave(data); return saved; }
+    catch { await sync.enqueue("countdown.save", data); return row; }
   }, []);
 
   const deleteCountdown = useCallback(async (id: string) => {
     dispatch({ type: "remove_countdown", id });
-    try { await api.countdownDelete(id); await db.remove("countdowns", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("countdowns", id);
+    try { await api.countdownDelete(id); }
+    catch { await sync.enqueue("countdown.delete", { id }); }
+  }, []);
 
   const saveHomework = useCallback(async (data: any) => {
-    const row = await api.homeworkSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_homework", data: row });
     await db.put("homework", row);
-    return row;
+    try { const saved = await api.homeworkSave(data); return saved; }
+    catch { await sync.enqueue("homework.save", data); return row; }
   }, []);
 
   const deleteHomework = useCallback(async (id: string) => {
     dispatch({ type: "remove_homework", id });
-    try { await api.homeworkDelete(id); await db.remove("homework", id); } catch { await refresh(); }
-  }, [refresh]);
+    await db.remove("homework", id);
+    try { await api.homeworkDelete(id); }
+    catch { await sync.enqueue("homework.delete", { id }); }
+  }, []);
 
   const completeHomework = useCallback(async (params: { id: string; completed: boolean }) => {
     const updated = { ...state.homework.find(h => h.id === params.id), completed: params.completed } as Homework;
     dispatch({ type: "upsert_homework", data: updated });
-    try { await api.homeworkComplete(params); await db.put("homework", updated); } catch { await refresh(); }
-  }, [state.homework, refresh]);
+    await db.put("homework", updated);
+    try { await api.homeworkComplete(params); }
+    catch { await sync.enqueue("homework.complete", params); }
+  }, [state.homework]);
 
   const saveDayOverride = useCallback(async (data: any) => {
-    const row = await api.dayOverrideSave(data);
+    const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_day_override", data: row });
     await db.put("day_overrides", row);
-    return row;
+    try { const saved = await api.dayOverrideSave(data); return saved; }
+    catch { await sync.enqueue("dayOverride.save", data); return row; }
   }, []);
 
   const deleteDayOverride = useCallback(async (params: { id?: string; date?: string }) => {
     if (params.id) {
       dispatch({ type: "remove_day_override", id: params.id });
+      await db.remove("day_overrides", params.id);
     } else if (params.date) {
       const existing = state.dayOverrides.find(o => o.date === params.date);
-      if (existing) dispatch({ type: "remove_day_override", id: existing.id });
+      if (existing) {
+        dispatch({ type: "remove_day_override", id: existing.id });
+        await db.remove("day_overrides", existing.id);
+      }
     }
-    try { await api.dayOverrideDelete(params); if (params.id) await db.remove("day_overrides", params.id); } catch { await refresh(); }
-  }, [state.dayOverrides, refresh]);
+    try { await api.dayOverrideDelete(params); }
+    catch { await sync.enqueue("dayOverride.delete", params); }
+  }, [state.dayOverrides]);
 
   const saveSettings = useCallback(async (data: any) => {
-    const row = await api.settingsSave(data);
+    const row = { ...data, id: 1 };
     dispatch({ type: "update_settings", data: row });
     await db.put("settings", row);
-    return row;
+    try { const saved = await api.settingsSave(data); return saved; }
+    catch { await sync.enqueue("settings.save", data); return row; }
   }, []);
 
   const exportData = useCallback(async () => {
@@ -403,6 +442,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const clearLocalData = useCallback(async () => {
+    await db.clearAllData();
+    await refresh();
+  }, [refresh]);
+
   return (
     <Ctx.Provider value={{
       state, dispatch, seedIfEmpty, refresh,
@@ -413,7 +457,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveCampaign, deleteCampaign, attachTasks,
       saveCountdown, deleteCountdown, saveHomework, deleteHomework, completeHomework, saveSettings,
       saveDayOverride, deleteDayOverride,
-      exportData, importData,
+      exportData, importData, clearLocalData,
     }}>
       {children}
     </Ctx.Provider>

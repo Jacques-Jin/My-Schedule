@@ -8,7 +8,9 @@ import CampaignsPage from "./pages/CampaignsPage";
 import SettingsPage from "./pages/SettingsPage";
 import HomeworkPage from "./pages/HomeworkPage";
 import ReminderBanner from "./components/ReminderBanner";
+import SyncIndicator from "./components/SyncIndicator";
 import { applyTheme, getStoredTheme } from "./themes/loader";
+import { initSync } from "./lib/sync";
 import "./styles.css";
 
 function getHashPage(): string {
@@ -27,7 +29,7 @@ const pages: Record<string, () => ReactNode> = {
 
 function AppInner() {
   const [page, setPage] = useState(getHashPage);
-  const { state } = useStore();
+  const { state, seedIfEmpty } = useStore();
 
   useEffect(() => {
     const onHash = () => setPage(getHashPage());
@@ -38,6 +40,10 @@ function AppInner() {
   useEffect(() => {
     if (state.status === "ready") {
       applyTheme(getStoredTheme());
+      initSync();
+      if (state.courses.length === 0 && state.tasks.length === 0 && state.semesters.length === 0) {
+        seedIfEmpty();
+      }
     }
   }, [state.status]);
 
@@ -45,6 +51,7 @@ function AppInner() {
 
   return (
     <div className="app-shell">
+      <SyncIndicator />
       <ReminderBanner />
       <Nav />
       <main className="main-content">

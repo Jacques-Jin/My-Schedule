@@ -68,12 +68,19 @@ export async function clearAllCache(): Promise<void> {
   await tx.done;
 }
 
+const REVERSE_KEY_MAP: Record<string, string> = {
+  periodSlots: "period_slots",
+  completions: "task_completions",
+  dayOverrides: "day_overrides",
+};
+
 export async function cacheBootstrap(data: any): Promise<void> {
   const db = await getDB();
   const tx = db.transaction([...STORE_NAMES], "readwrite");
   for (const name of STORE_NAMES) {
     await tx.objectStore(name).clear();
-    const items = data[name];
+    const camelKey = Object.keys(REVERSE_KEY_MAP).find(k => REVERSE_KEY_MAP[k] === name);
+    const items = data[camelKey || name];
     if (Array.isArray(items)) {
       for (const item of items) await tx.objectStore(name).put(item);
     }
@@ -81,15 +88,23 @@ export async function cacheBootstrap(data: any): Promise<void> {
   await tx.done;
 }
 
+const STORE_KEY_MAP: Record<string, string> = {
+  period_slots: "periodSlots",
+  task_completions: "completions",
+  day_overrides: "dayOverrides",
+};
+
 export async function loadFromCache(): Promise<any | null> {
   const db = await getDB();
   const tx = db.transaction([...STORE_NAMES], "readonly");
   const result: any = {};
   for (const name of STORE_NAMES) {
-    result[name] = await tx.objectStore(name).getAll();
+    const items = await tx.objectStore(name).getAll();
+    const key = STORE_KEY_MAP[name] || name;
+    result[key] = items;
   }
   await tx.done;
-  const hasData = STORE_NAMES.some(n => result[n]?.length > 0);
+  const hasData = STORE_NAMES.some(n => result[STORE_KEY_MAP[n] || n]?.length > 0);
   return hasData ? result : null;
 }
 
@@ -123,10 +138,19 @@ export async function importAllData(data: any): Promise<void> {
   const db = await getDB();
   const tx = db.transaction([...STORE_NAMES], "readwrite");
   for (const name of STORE_NAMES) {
-    const items = data[name];
+    const camelKey = Object.keys(REVERSE_KEY_MAP).find(k => REVERSE_KEY_MAP[k] === name);
+    const items = data[camelKey || name];
     if (Array.isArray(items)) {
       for (const item of items) await tx.objectStore(name).put(item);
     }
   }
+  await tx.done;
+}
+
+export async function clearAllData(): Promise<void> {
+  const db = await getDB();
+  const allStores = [...STORE_NAMES, "_sync_queue", "_sync_meta"] as string[];
+  const tx = db.transaction(allStores, "readwrite");
+  for (const name of allStores) await tx.objectStore(name).clear();
   await tx.done;
 }

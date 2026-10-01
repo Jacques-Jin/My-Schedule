@@ -1672,6 +1672,20 @@ body::before {
   box-shadow: var(--glass-highlight);
 }
 .btn-secondary:hover { background: var(--glass-bg-hover); }
+.btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all var(--dur-fast) var(--ease);
+}
+.btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
 .btn-text {
   background: none;
   border: none;
@@ -2057,6 +2071,69 @@ body::before {
 }
 
 /* ================================================================
+   TIME INDICATOR
+   ================================================================ */
+
+/* Week view now line */
+.wg-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1.5px solid rgba(239, 68, 68, 0.5);
+  pointer-events: none;
+  z-index: 5;
+}
+.wg-now-line::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -3.5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.6);
+}
+
+/* Day view current period group highlight */
+.day-group.now-group {
+  position: relative;
+}
+.day-group.now-group::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(239, 68, 68, 0.35);
+}
+
+/* Day view "now" tag */
+.day-now-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  color: rgba(239, 68, 68, 0.7);
+  font-weight: 600;
+  margin-left: 8px;
+}
+.day-now-tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.6);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ================================================================
    GLOBAL SMOOTHNESS — scroll, selection, focus
    ================================================================ */
 ::selection {
@@ -2068,6 +2145,54 @@ body::before {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Sync Indicator */
+.sync-indicator {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: opacity 0.2s, transform 0.2s;
+  user-select: none;
+}
+.sync-indicator:hover {
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.05);
+}
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sync-dot.sync-synced { background: #4ade80; }
+.sync-dot.sync-syncing { background: #facc15; animation: sync-pulse 1s infinite; }
+.sync-dot.sync-offline { background: #f87171; }
+.sync-dot.sync-error { background: #ef4444; animation: sync-pulse 0.6s infinite; }
+.sync-count {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 11px;
+  min-width: 16px;
+  text-align: center;
+}
+.sync-label { white-space: nowrap; }
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* Smooth scrolling */

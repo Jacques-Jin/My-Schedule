@@ -369,9 +369,10 @@ function ReminderSection() {
 }
 
 function DataSection() {
-  const { exportData, importData, refresh } = useStore();
+  const { exportData, importData, clearLocalData, refresh } = useStore();
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -415,6 +416,13 @@ function DataSection() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const handleClear = async () => {
+    await clearLocalData();
+    setConfirmClear(false);
+    setMessage("本地数据已清除");
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   return (
     <div className="settings-section">
       <h3>数据备份</h3>
@@ -433,8 +441,18 @@ function DataSection() {
           </label>
           {importing && <span className="importing-hint">导入中…</span>}
         </div>
+        <div className="data-card">
+          <h4>清除本地数据</h4>
+          <p>清除 IndexedDB 中的所有本地缓存数据。下次加载将从云端重新拉取。</p>
+          <button className="btn-danger" onClick={() => setConfirmClear(true)}>清除本地数据</button>
+        </div>
       </div>
       {message && <p className="data-message">{message}</p>}
+      {confirmClear && (
+        <ConfirmDialog open={true} title="清除本地数据" onClose={() => setConfirmClear(false)} onConfirm={handleClear}>
+          确定清除所有本地缓存数据？未同步的修改将丢失。
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

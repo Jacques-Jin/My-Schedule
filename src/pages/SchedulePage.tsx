@@ -14,6 +14,8 @@ import TaskFormSheet from "../components/task/TaskFormSheet";
 import DayOverrideSheet from "../components/schedule/DayOverrideSheet";
 import { parseScheduleXlsx } from "../lib/xlsx-import";
 import { cellToTaskDraft, type TaskDraft } from "../lib/schedule-cell";
+import { useNow } from "../hooks/useNow";
+import { getNowPosition, getNowDayPart } from "../lib/time-indicator";
 
 type ViewMode = "day" | "week";
 
@@ -46,6 +48,7 @@ export default function SchedulePage() {
   const [overrideDate, setOverrideDate] = useState(today);
   const [overrideInitial, setOverrideInitial] = useState<DayOverride | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const now = useNow();
 
   useEffect(() => { localStorage.setItem("schedule_view", view); }, [view]);
 
@@ -192,6 +195,7 @@ export default function SchedulePage() {
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
           today={today}
+          now={now}
           getCourses={getCoursesForDate}
           getDayType={getDayTypeForDate}
           getRepeatTasks={getRepeatTasksForDate}
@@ -203,6 +207,7 @@ export default function SchedulePage() {
         <WeekView
           dates={weekDates}
           today={today}
+          now={now}
           getCourses={getCoursesForDate}
           getDayType={getDayTypeForDate}
           getRepeatTasks={getRepeatTasksForDate}
@@ -252,11 +257,12 @@ export default function SchedulePage() {
 }
 
 // ---- Day View ----
-function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getDayType, getRepeatTasks, periodSlots, onCourseClick, onMarkDay }: {
+function DayView({ dates, selectedDate, onSelectDate, today, now, getCourses, getDayType, getRepeatTasks, periodSlots, onCourseClick, onMarkDay }: {
   dates: string[];
   selectedDate: string;
   onSelectDate: (d: string) => void;
   today: string;
+  now: Date;
   getCourses: (d: string) => Course[];
   getDayType: (d: string) => DayType;
   getRepeatTasks: (d: string) => Task[];
@@ -268,13 +274,22 @@ function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getDayT
   const dayType = getDayType(selectedDate);
   const repeatTasks = getRepeatTasks(selectedDate);
 
+  const dayPart = useMemo(() => {
+    if (selectedDate !== today) return null;
+    if (dayType.isHoliday) return null;
+    return getNowDayPart(now, periodSlots);
+  }, [now, selectedDate, today, dayType.isHoliday, periodSlots]);
+
   const morning = dayCourses.filter(c => c.start_period <= 5);
   const afternoon = dayCourses.filter(c => c.start_period >= 6 && c.start_period <= 10);
   const evening = dayCourses.filter(c => c.start_period >= 11);
 
-  const renderGroup = (label: string, items: Course[]) => (
-    <div className="day-group">
-      <div className="day-group-label">{label}</div>
+  const renderGroup = (label: string, items: Course[], part: "morning" | "afternoon" | "evening") => (
+    <div className={`day-group${dayPart === part ? " now-group" : ""}`}>
+      <div className="day-group-label">
+        {label}
+        {dayPart === part && <span className="day-now-tag">现在</span>}
+      </div>
       {items.length === 0 ? (
         <div className="day-empty">暂无课程</div>
       ) : (
@@ -321,9 +336,9 @@ function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getDayT
       )}
       {!dayType.isHoliday && (
         <div className="day-groups">
-          {renderGroup("上午", morning)}
-          {renderGroup("下午", afternoon)}
-          {renderGroup("晚上", evening)}
+          {renderGroup("上午", morning, "morning")}
+          {renderGroup("下午", afternoon, "afternoon")}
+          {renderGroup("晚上", evening, "evening")}
         </div>
       )}
       <button className="day-mark-btn" onClick={() => onMarkDay(selectedDate)}>标记这天</button>
@@ -332,9 +347,10 @@ function DayView({ dates, selectedDate, onSelectDate, today, getCourses, getDayT
 }
 
 // ---- Week View ----
-function WeekView({ dates, today, getCourses, getDayType, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange, onCellClick, onDayHeaderClick }: {
+function WeekView({ dates, today, now, getCourses, getDayType, getRepeatTasks, periodSlots, onCourseClick, onTaskTimeChange, onCellClick, onDayHeaderClick }: {
   dates: string[];
   today: string;
+  now: Date;
   getCourses: (d: string) => Course[];
   getDayType: (d: string) => DayType;
   getRepeatTasks: (d: string) => Task[];
@@ -346,6 +362,13 @@ function WeekView({ dates, today, getCourses, getDayType, getRepeatTasks, period
 }) {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const dragTask = useRef<{ task: Task; durationMin: number } | null>(null);
+
+  const nowPos = useMemo(() => {
+    if (!dates.includes(today)) return null;
+    const todayType = getDayType(today);
+    if (todayType.isHoliday) return null;
+    return getNowPosition(now, periodSlots);
+  }, [now, dates, today, getDayType, periodSlots]);
 
   const handleDragStart = useCallback((e: React.DragEvent, task: Task) => {
     const start = task.start_time || "08:00";
@@ -471,6 +494,18 @@ function WeekView({ dates, today, getCourses, getDayType, getRepeatTasks, period
             />
           ));
         })}
+
+        {/* Now indicator line */}
+        {nowPos && (
+          <div
+            className="wg-now-line"
+            style={{
+              gridRow: nowPos.slotNo + 1,
+              gridColumn: dates.indexOf(today) + 2,
+              top: `${nowPos.ratio * 100}%`,
+            }}
+          />
+        )}
       </div>
     </div>
   );
