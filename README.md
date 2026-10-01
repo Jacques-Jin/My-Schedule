@@ -30,12 +30,17 @@ npm run dev
 - Node.js >= 22.12.0
 - Deno
 - 首次运行需执行 `npm install`
+- 依赖：`idb`（IndexedDB 封装）、`vite`、`react`
 
 ## 项目结构
 
 ```
 my-schedule/
 ├── src/                    # React 前端源码
+│   ├── lib/
+│   │   ├── db.ts           # IndexedDB 封装层（14 stores）
+│   │   ├── sync.ts         # Write-behind 同步管理器
+│   │   └── api.ts          # Supabase REST API 客户端
 ├── functions/              # 边缘函数（API 处理）
 │   ├── local-dev-index.ts  # 本地开发服务器
 │   ├── handler.mjs         # API 请求处理器
@@ -63,7 +68,9 @@ my-schedule/
 
 ## 开发说明
 
-- 本地开发使用内存数据库，重启后数据重置为种子数据
+- 本地开发使用 IndexedDB 持久化 + Deno 内存 API 服务器
+- 前端数据优先读写 IndexedDB，异步与 Supabase 同步（离线可用）
 - 前端支持热重载，后端修改需重启 Deno 服务器
 - 端口：API 8000，前端 5173
 - 如端口被占用，先用 `停止.bat` 清理旧进程
+- 设置页 → 数据备份 → "清除本地数据"可重置 IndexedDB
