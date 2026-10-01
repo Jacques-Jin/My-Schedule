@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { getSyncStatus, onSyncChange, syncNow, type SyncStatus } from "../lib/sync";
 
 const labels: Record<SyncStatus, string> = {
@@ -10,8 +11,33 @@ const labels: Record<SyncStatus, string> = {
 
 export default function SyncIndicator() {
   const [status, setStatus] = useState(getSyncStatus);
+  const prevStatus = useRef<SyncStatus>(status.status);
+  const toastId = useRef<string | number | null>(null);
 
-  useEffect(() => onSyncChange((s, p) => setStatus({ status: s, pending: p })), []);
+  useEffect(() => onSyncChange((s, p) => {
+    const prev = prevStatus.current;
+    setStatus({ status: s, pending: p });
+
+    if (s === "syncing" && prev !== "syncing" && p > 0) {
+      toastId.current = toast.loading("数据同步中…");
+    } else if (s === "synced" && prev === "syncing") {
+      if (toastId.current != null) {
+        toast.success("数据同步成功", { id: toastId.current });
+        toastId.current = null;
+      } else {
+        toast.success("数据同步成功");
+      }
+    } else if ((s === "offline" || s === "error") && prev === "syncing") {
+      if (toastId.current != null) {
+        toast.error("数据同步失败，将在恢复后重试", { id: toastId.current });
+        toastId.current = null;
+      } else {
+        toast.error("数据同步失败，将在恢复后重试");
+      }
+    }
+
+    prevStatus.current = s;
+  }), []);
 
   if (status.status === "synced" && status.pending === 0) return null;
 

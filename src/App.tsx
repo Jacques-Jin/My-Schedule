@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Toaster } from "sonner";
 import Nav from "./components/Nav";
 import { StoreProvider, useStore } from "./store";
 import SchedulePage from "./pages/SchedulePage";
@@ -51,6 +52,7 @@ function AppInner() {
 
   return (
     <div className="app-shell">
+      <Toaster theme="dark" position="top-center" closeButton />
       <SyncIndicator />
       <ReminderBanner />
       <Nav />
