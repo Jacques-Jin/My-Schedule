@@ -129,6 +129,22 @@ export async function removeFromSyncQueue(id: number): Promise<void> {
   await db.delete("_sync_queue", id);
 }
 
+export async function updateSyncItem(item: any): Promise<void> {
+  const db = await getDB();
+  await db.put("_sync_queue", item);
+}
+
+export async function getMeta(key: string): Promise<any> {
+  const db = await getDB();
+  const row = await db.get("_sync_meta", key);
+  return row ? row.value : undefined;
+}
+
+export async function setMeta(key: string, value: any): Promise<void> {
+  const db = await getDB();
+  await db.put("_sync_meta", { key, value });
+}
+
 export async function exportAllData(): Promise<any> {
   return loadFromCache();
 }

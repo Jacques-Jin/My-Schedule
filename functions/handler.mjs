@@ -69,6 +69,21 @@ function pick(obj, fields) {
   return result;
 }
 
+// Offline-first clients always send a locally generated id, so an update that
+// matches 0 rows means the row never reached the server: insert with that id.
+async function upsertById(supabase, table, id, data, insertExtra = {}) {
+  if (id) {
+    const { data: rows, error } = await supabase.from(table).update(data).eq("id", id).select();
+    if (error) throw new Error(`update_${table}_failed`);
+    if (rows && rows.length > 0) return rows[0];
+  }
+  const { data: row, error } = await supabase.from(table)
+    .insert({ id: id || uid(), ...insertExtra, ...data })
+    .select().single();
+  if (error) throw new Error(`insert_${table}_failed`);
+  return row;
+}
+
 // Seed data (imported inline to keep handler self-contained for Deno)
 export const SEED = {
   semester: { name: "2026秋", start_monday: "2026-09-07", total_weeks: 19, is_current: true },
@@ -205,16 +220,7 @@ const actions = {
     if (err) throw new Error(err);
     const fields = ["name", "start_monday", "total_weeks", "is_current"];
     const data = pick(payload, fields);
-    if (payload.id) {
-      const { data: row, error } = await supabase.from("semesters").update(data).eq("id", payload.id).select("*").single();
-      if (error) throw new Error("semester_update_failed");
-      return row;
-    }
-    const { data: row, error } = await supabase.from("semesters")
-      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
-      .select("*").single();
-    if (error) throw new Error("semester_insert_failed");
-    return row;
+    return await upsertById(supabase, "semesters", payload.id, data, { created_at: new Date().toISOString() });
   },
 
   "semester.setCurrent": async ({ supabase, payload }) => {
@@ -239,14 +245,7 @@ const actions = {
     const err = validateHoliday(payload);
     if (err) throw new Error(err);
     const data = pick(payload, ["name", "start_date", "end_date"]);
-    if (payload.id) {
-      const { data: row, error } = await supabase.from("holidays").update(data).eq("id", payload.id).select("*").single();
-      if (error) throw new Error("holiday_update_failed");
-      return row;
-    }
-    const { data: row, error } = await supabase.from("holidays").insert({ id: uid(), ...data }).select("*").single();
-    if (error) throw new Error("holiday_insert_failed");
-    return row;
+    return await upsertById(supabase, "holidays", payload.id, data);
   },
 
   "holiday.delete": async ({ supabase, payload }) => {
@@ -284,12 +283,12 @@ const actions = {
     const fields = ["semester_id", "name", "teacher", "weekday", "start_period", "end_period", "week_rule", "location", "color", "note"];
     const data = pick(payload, fields);
     if (payload.id) {
-      const { data: row, error } = await supabase.from("courses").update(data).eq("id", payload.id).select("*").single();
+      const { data: rows, error } = await supabase.from("courses").update(data).eq("id", payload.id).select();
       if (error) throw new Error("course_update_failed");
-      return row;
+      if (rows && rows.length > 0) return rows[0];
     }
     if (!data.semester_id) throw new Error("missing_semester_id");
-    const { data: row, error } = await supabase.from("courses").insert({ id: uid(), ...data }).select("*").single();
+    const { data: row, error } = await supabase.from("courses").insert({ id: payload.id || uid(), ...data }).select().single();
     if (error) throw new Error("course_insert_failed");
     return row;
   },
@@ -306,16 +305,7 @@ const actions = {
     if (err) throw new Error(err);
     const fields = ["title", "date", "start_time", "end_time", "category", "priority", "repeat_rule", "reminder", "done", "campaign_id", "note"];
     const data = pick(payload, fields);
-    if (payload.id) {
-      const { data: row, error } = await supabase.from("tasks").update(data).eq("id", payload.id).select("*").single();
-      if (error) throw new Error("task_update_failed");
-      return row;
-    }
-    const { data: row, error } = await supabase.from("tasks")
-      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
-      .select("*").single();
-    if (error) throw new Error("task_insert_failed");
-    return row;
+    return await upsertById(supabase, "tasks", payload.id, data, { created_at: new Date().toISOString() });
   },
 
   "task.delete": async ({ supabase, payload }) => {
@@ -395,16 +385,7 @@ const actions = {
     if (err) throw new Error(err);
     const fields = ["name", "goal", "deadline", "color"];
     const data = pick(payload, fields);
-    if (payload.id) {
-      const { data: row, error } = await supabase.from("campaigns").update(data).eq("id", payload.id).select("*").single();
-      if (error) throw new Error("campaign_update_failed");
-      return row;
-    }
-    const { data: row, error } = await supabase.from("campaigns")
-      .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
-      .select("*").single();
-    if (error) throw new Error("campaign_insert_failed");
-    return row;
+    return await upsertById(supabase, "campaigns", payload.id, data, { created_at: new Date().toISOString() });
   },
 
   "campaign.delete": async ({ supabase, payload }) => {
@@ -428,14 +409,7 @@ const actions = {
     const err = validateCountdown(payload);
     if (err) throw new Error(err);
     const data = pick(payload, ["name", "target_date"]);
-    if (payload.id) {
-      const { data: row, error } = await supabase.from("countdowns").update(data).eq("id", payload.id).select("*").single();
-      if (error) throw new Error("countdown_update_failed");
-      return row;
-    }
-    const { data: row, error } = await supabase.from("countdowns").insert({ id: uid(), ...data }).select("*").single();
-    if (error) throw new Error("countdown_insert_failed");
-    return row;
+    return await upsertById(supabase, "countdowns", payload.id, data);
   },
 
   "countdown.delete": async ({ supabase, payload }) => {
@@ -462,9 +436,7 @@ const actions = {
     }
 
     if (payload.id) {
-      const { data: row, error } = await supabase.from("day_overrides").update(data).eq("id", payload.id).select("*").single();
-      if (error) throw new Error("day_override_update_failed");
-      return row;
+      return await upsertById(supabase, "day_overrides", payload.id, data, { created_at: new Date().toISOString() });
     }
     const { data: row, error } = await supabase.from("day_overrides")
       .insert({ id: uid(), ...data, created_at: new Date().toISOString() })
@@ -640,15 +612,7 @@ const actions = {
     if (!payload.title || typeof payload.title !== "string") throw new Error("invalid_title");
     if (!payload.course_id) throw new Error("missing_course_id");
     const row = pick(payload, ["title", "course_id", "due_date", "description", "completed"]);
-    if (payload.id) {
-      const { data, error } = await supabase.from("homework").update(row).eq("id", payload.id).select().single();
-      if (error) throw new Error("update_homework_failed");
-      return data;
-    }
-    const insertRow = { id: uid(), completed: false, created_at: new Date().toISOString(), ...row };
-    const { data, error } = await supabase.from("homework").insert(insertRow).select().single();
-    if (error) throw new Error("insert_homework_failed");
-    return data;
+    return await upsertById(supabase, "homework", payload.id, row, { completed: false, created_at: new Date().toISOString() });
   },
 
   "homework.delete": async ({ supabase, payload }) => {

@@ -25,7 +25,9 @@ export default function SyncIndicator() {
         toast.success("数据同步成功", { id: toastId.current });
         toastId.current = null;
       } else {
-        toast.success("数据同步成功");
+        // Direct online writes pulse syncing->synced without a loading toast;
+        // reuse a stable id so rapid successive saves coalesce into one toast.
+        toast.success("数据同步成功", { id: "sync-direct" });
       }
     } else if ((s === "offline" || s === "error") && prev === "syncing") {
       if (toastId.current != null) {

@@ -23,6 +23,16 @@ export function onSyncChange(fn: Listener): () => void {
   return () => listeners.delete(fn);
 }
 
+// A successful online write goes straight to the server and never enters the
+// queue, so the status machine would stay silent. Emit a syncing->synced pulse
+// so listeners (SyncIndicator) surface the standard "已同步" toast.
+export function notifyDirectSync() {
+  status = "syncing";
+  notify();
+  status = "synced";
+  notify();
+}
+
 async function refreshPending() {
   const q = await db.getPendingSync();
   pendingCount = q.length;
@@ -41,6 +51,14 @@ function scheduleSync() {
     syncTimer = null;
     syncNow();
   }, 2000);
+}
+
+function retryLater() {
+  if (syncTimer) return;
+  syncTimer = setTimeout(() => {
+    syncTimer = null;
+    syncNow();
+  }, 30000);
 }
 
 export async function syncNow() {
@@ -67,7 +85,13 @@ export async function syncNow() {
       if (isNetworkError) {
         status = "offline";
       } else {
-        await db.removeFromSyncQueue(item.id);
+        item.attempts = (item.attempts || 0) + 1;
+        if (item.attempts >= 5) {
+          await db.removeFromSyncQueue(item.id);
+        } else {
+          await db.updateSyncItem(item);
+          retryLater();
+        }
         status = "error";
       }
       await refreshPending();

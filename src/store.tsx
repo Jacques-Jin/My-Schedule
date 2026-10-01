@@ -142,11 +142,6 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function countItems(data: any): number {
-  if (!data) return 0;
-  return Object.values(data).reduce((sum: number, v: any) => sum + (Array.isArray(v) ? v.length : 0), 0);
-}
-
 const initialState: State = {
   semesters: [], periodSlots: [], holidays: [], courses: [],
   campaigns: [], tasks: [], completions: [], countdowns: [], homework: [],
@@ -188,6 +183,35 @@ interface StoreCtx {
 
 const Ctx = createContext<StoreCtx | null>(null);
 
+const RECONCILE: { key: string; store: db.StoreName; action: string }[] = [
+  { key: "semesters", store: "semesters", action: "semester.save" },
+  { key: "tasks", store: "tasks", action: "task.save" },
+  { key: "campaigns", store: "campaigns", action: "campaign.save" },
+  { key: "homework", store: "homework", action: "homework.save" },
+];
+
+function localOnlyRows(cached: any, server: any, lastSync: number) {
+  const out: { key: string; store: db.StoreName; action: string; row: any }[] = [];
+  for (const entry of RECONCILE) {
+    const serverIds = new Set((server[entry.key] || []).map((r: any) => r.id));
+    for (const row of cached[entry.key] || []) {
+      const created = row.created_at ? Date.parse(row.created_at) : 0;
+      if (!serverIds.has(row.id) && created > lastSync) out.push({ ...entry, row });
+    }
+  }
+  return out;
+}
+
+function mergeServerWithLocal(cached: any, server: any, lastSync: number): any {
+  const merged: any = { ...server };
+  const extra: Record<string, any[]> = {};
+  for (const item of localOnlyRows(cached, server, lastSync)) {
+    (extra[item.key] ||= []).push(item.row);
+  }
+  for (const key of Object.keys(extra)) merged[key] = [...(merged[key] || []), ...extra[key]];
+  return merged;
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -200,10 +224,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "bootstrap", data: cached });
       }
       const data = await api.bootstrap();
-      if (!hasCache || countItems(data) >= countItems(cached)) {
+      if (cached) {
+        const lastSync = (await db.getMeta("lastBootstrap")) || 0;
+        for (const item of localOnlyRows(cached, data, lastSync)) {
+          sync.enqueue(item.action, item.row).catch(() => {});
+        }
+        const merged = mergeServerWithLocal(cached, data, lastSync);
+        await db.cacheBootstrap(merged);
+        dispatch({ type: "bootstrap", data: merged });
+      } else {
         await db.cacheBootstrap(data);
         dispatch({ type: "bootstrap", data });
       }
+      await db.setMeta("lastBootstrap", Date.now());
     } catch {
       if (!hasCache) {
         dispatch({ type: "error" });
@@ -218,27 +251,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const adoptSaved = useCallback(async (kind: string, store: db.StoreName, local: any, saved: any) => {
+    if (!saved || !saved.id || saved.id === local.id) return;
+    dispatch({ type: `remove_${kind}`, id: local.id } as any);
+    dispatch({ type: `upsert_${kind}`, data: saved } as any);
+    await db.remove(store, local.id);
+    await db.put(store, saved);
+  }, []);
+
   const saveSemester = useCallback(async (data: any) => {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_semester", data: row });
     await db.put("semesters", row);
-    try { const saved = await api.semesterSave(data); return saved; }
+    try { const saved = await api.semesterSave(data); await adoptSaved("semester", "semesters", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("semester.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const setCurrentSemester = useCallback(async (id: string) => {
     const prev = state.semesters;
     dispatch({ type: "set_current_semester", id });
     const updated = prev.map(s => ({ ...s, is_current: s.id === id }));
     await db.putMany("semesters", updated);
-    try { await api.semesterSetCurrent(id); }
+    try { await api.semesterSetCurrent(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("semester.setCurrent", { id }); }
   }, [state]);
 
   const deleteSemester = useCallback(async (id: string) => {
     dispatch({ type: "remove_semester", id });
     await db.remove("semesters", id);
-    try { await api.semesterDelete(id); }
+    try { await api.semesterDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("semester.delete", { id }); }
   }, []);
 
@@ -246,14 +287,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_holiday", data: row });
     await db.put("holidays", row);
-    try { const saved = await api.holidaySave(data); return saved; }
+    try { const saved = await api.holidaySave(data); await adoptSaved("holiday", "holidays", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("holiday.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteHoliday = useCallback(async (id: string) => {
     dispatch({ type: "remove_holiday", id });
     await db.remove("holidays", id);
-    try { await api.holidayDelete(id); }
+    try { await api.holidayDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("holiday.delete", { id }); }
   }, []);
 
@@ -261,7 +302,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "set_period_slots", data: slots });
     await db.clearStore("period_slots");
     await db.putMany("period_slots", slots);
-    try { const saved = await api.periodSave(slots); return saved; }
+    try { const saved = await api.periodSave(slots); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("period.save", slots); return slots; }
   }, []);
 
@@ -269,14 +310,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_course", data: row });
     await db.put("courses", row);
-    try { const saved = await api.courseSave(data); return saved; }
+    try { const saved = await api.courseSave(data); await adoptSaved("course", "courses", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("course.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteCourse = useCallback(async (id: string) => {
     dispatch({ type: "remove_course", id });
     await db.remove("courses", id);
-    try { await api.courseDelete(id); }
+    try { await api.courseDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("course.delete", { id }); }
   }, []);
 
@@ -284,14 +325,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_task", data: row });
     await db.put("tasks", row);
-    try { const saved = await api.taskSave(data); return saved; }
+    try { const saved = await api.taskSave(data); await adoptSaved("task", "tasks", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("task.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteTask = useCallback(async (id: string) => {
     dispatch({ type: "remove_task", id });
     await db.remove("tasks", id);
-    try { await api.taskDelete(id); }
+    try { await api.taskDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("task.delete", { id }); }
   }, []);
 
@@ -315,7 +356,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
       }
     }
-    try { await api.taskBatch(params); }
+    try { await api.taskBatch(params); sync.notifyDirectSync(); }
     catch { await sync.enqueue("task.batch", params); }
     await refresh();
   }, [state, refresh]);
@@ -329,19 +370,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const comp = { id: crypto.randomUUID(), task_id: id, date };
         dispatch({ type: "upsert_completion", data: comp });
         await db.put("task_completions", comp);
-        try { await api.taskComplete({ id, date, done }); }
+        try { await api.taskComplete({ id, date, done }); sync.notifyDirectSync(); }
         catch { await sync.enqueue("task.complete", { id, date, done }); }
       } else {
         dispatch({ type: "remove_completion", task_id: id, date });
         await db.remove("task_completions", `${id}:${date}`);
-        try { await api.taskComplete({ id, date, done }); }
+        try { await api.taskComplete({ id, date, done }); sync.notifyDirectSync(); }
         catch { await sync.enqueue("task.complete", { id, date, done }); }
       }
     } else {
       const updated = { ...task, done };
       dispatch({ type: "upsert_task", data: updated });
       await db.put("tasks", updated);
-      try { await api.taskComplete({ id, date, done }); }
+      try { await api.taskComplete({ id, date, done }); sync.notifyDirectSync(); }
       catch { await sync.enqueue("task.complete", { id, date, done }); }
     }
   }, [state.tasks]);
@@ -350,20 +391,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_campaign", data: row });
     await db.put("campaigns", row);
-    try { const saved = await api.campaignSave(data); return saved; }
+    try { const saved = await api.campaignSave(data); await adoptSaved("campaign", "campaigns", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("campaign.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteCampaign = useCallback(async (id: string) => {
     dispatch({ type: "remove_campaign", id });
     await db.remove("campaigns", id);
-    try { await api.campaignDelete(id); }
+    try { await api.campaignDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("campaign.delete", { id }); }
   }, []);
 
   const attachTasks = useCallback(async (campaignId: string | null, taskIds: string[]) => {
     dispatch({ type: "attach_tasks", campaignId, taskIds });
-    try { await api.campaignAttach({ campaignId, taskIds }); }
+    try { await api.campaignAttach({ campaignId, taskIds }); sync.notifyDirectSync(); }
     catch { await sync.enqueue("campaign.attach", { campaignId, taskIds }); }
     await refresh();
   }, [refresh]);
@@ -372,14 +413,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_countdown", data: row });
     await db.put("countdowns", row);
-    try { const saved = await api.countdownSave(data); return saved; }
+    try { const saved = await api.countdownSave(data); await adoptSaved("countdown", "countdowns", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("countdown.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteCountdown = useCallback(async (id: string) => {
     dispatch({ type: "remove_countdown", id });
     await db.remove("countdowns", id);
-    try { await api.countdownDelete(id); }
+    try { await api.countdownDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("countdown.delete", { id }); }
   }, []);
 
@@ -387,14 +428,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_homework", data: row });
     await db.put("homework", row);
-    try { const saved = await api.homeworkSave(data); return saved; }
+    try { const saved = await api.homeworkSave(data); await adoptSaved("homework", "homework", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("homework.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteHomework = useCallback(async (id: string) => {
     dispatch({ type: "remove_homework", id });
     await db.remove("homework", id);
-    try { await api.homeworkDelete(id); }
+    try { await api.homeworkDelete(id); sync.notifyDirectSync(); }
     catch { await sync.enqueue("homework.delete", { id }); }
   }, []);
 
@@ -402,7 +443,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const updated = { ...state.homework.find(h => h.id === params.id), completed: params.completed } as Homework;
     dispatch({ type: "upsert_homework", data: updated });
     await db.put("homework", updated);
-    try { await api.homeworkComplete(params); }
+    try { await api.homeworkComplete(params); sync.notifyDirectSync(); }
     catch { await sync.enqueue("homework.complete", params); }
   }, [state.homework]);
 
@@ -410,9 +451,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: data.id || crypto.randomUUID() };
     dispatch({ type: "upsert_day_override", data: row });
     await db.put("day_overrides", row);
-    try { const saved = await api.dayOverrideSave(data); return saved; }
+    try { const saved = await api.dayOverrideSave(data); await adoptSaved("day_override", "day_overrides", row, saved); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("dayOverride.save", data); return row; }
-  }, []);
+  }, [adoptSaved]);
 
   const deleteDayOverride = useCallback(async (params: { id?: string; date?: string }) => {
     if (params.id) {
@@ -425,7 +466,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await db.remove("day_overrides", existing.id);
       }
     }
-    try { await api.dayOverrideDelete(params); }
+    try { await api.dayOverrideDelete(params); sync.notifyDirectSync(); }
     catch { await sync.enqueue("dayOverride.delete", params); }
   }, [state.dayOverrides]);
 
@@ -433,7 +474,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const row = { ...data, id: 1 };
     dispatch({ type: "update_settings", data: row });
     await db.put("settings", row);
-    try { const saved = await api.settingsSave(data); return saved; }
+    try { const saved = await api.settingsSave(data); sync.notifyDirectSync(); return saved; }
     catch { await sync.enqueue("settings.save", data); return row; }
   }, []);
 
