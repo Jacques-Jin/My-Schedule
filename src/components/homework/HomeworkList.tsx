@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useStore, type Homework, type Course } from "../../store";
 import { formatDate } from "../../lib/date";
 import { groupHomework } from "../../lib/homework";
@@ -15,9 +15,19 @@ export default function HomeworkList({ courseId, showCompleted = false, grouped 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Homework | null>(null);
 
+  const allMatchIds = useMemo(() => {
+    if (courseId) {
+      const name = state.courses.find(c => String(c.id) === String(courseId))?.name;
+      if (name) return new Set(state.courses.filter(c => c.name === name).map(c => String(c.id)));
+    }
+    if (courseFilter) {
+      return new Set(state.courses.filter(c => c.name === courseFilter).map(c => String(c.id)));
+    }
+    return null;
+  }, [courseId, courseFilter, state.courses]);
+
   const filteredHomework = state.homework.filter(h => {
-    if (courseId && h.course_id !== courseId) return false;
-    if (courseFilter && h.course_id !== courseFilter) return false;
+    if (allMatchIds && !allMatchIds.has(String(h.course_id))) return false;
     if (!grouped && !showCompleted && h.completed) return false;
     return true;
   });
@@ -30,7 +40,7 @@ export default function HomeworkList({ courseId, showCompleted = false, grouped 
   });
 
   const getCourseName = (courseId: string) => {
-    const course = state.courses.find(c => c.id === courseId);
+    const course = state.courses.find(c => String(c.id) === String(courseId));
     return course?.name || "未知课程";
   };
 
@@ -157,9 +167,23 @@ function HomeworkForm({ courseId, homework, onClose, onSave }: HomeworkFormProps
     description: homework?.description || "",
   });
 
-  const availableCourses = courseId
-    ? state.courses.filter(c => c.id === courseId)
-    : state.courses;
+  const availableCourses = useMemo(() => {
+    const list = courseId
+      ? state.courses.filter(c => c.id === courseId)
+      : state.courses;
+    const map = new Map<string, { id: string; name: string; teachers: string[] }>();
+    for (const c of list) {
+      const existing = map.get(c.name);
+      if (existing) {
+        if (c.teacher && !existing.teachers.includes(c.teacher)) {
+          existing.teachers.push(c.teacher);
+        }
+      } else {
+        map.set(c.name, { id: c.id, name: c.name, teachers: c.teacher ? [c.teacher] : [] });
+      }
+    }
+    return [...map.values()];
+  }, [courseId, state.courses]);
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.course_id) return;
@@ -192,7 +216,9 @@ function HomeworkForm({ courseId, homework, onClose, onSave }: HomeworkFormProps
       >
         <option value="">选择课程</option>
         {availableCourses.map(c => (
-          <option key={c.id} value={c.id}>{c.name}</option>
+          <option key={c.id} value={c.id}>
+            {c.name}{c.teachers.length > 0 ? `（${c.teachers.join("、")}）` : ""}
+          </option>
         ))}
       </select>
 

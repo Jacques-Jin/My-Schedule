@@ -498,13 +498,17 @@ function WeekView({ dates, today, now, getCourses, getDayType, getRepeatTasks, p
         {/* Now indicator line */}
         {nowPos && (
           <div
-            className="wg-now-line"
+            className="wg-now-line-wrapper"
             style={{
               gridRow: nowPos.slotNo + 1,
               gridColumn: dates.indexOf(today) + 2,
-              top: `${nowPos.ratio * 100}%`,
             }}
-          />
+          >
+            <div
+              className="wg-now-line"
+              style={{ top: `${nowPos.ratio * 100}%` }}
+            />
+          </div>
         )}
       </div>
     </div>

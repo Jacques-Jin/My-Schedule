@@ -644,6 +644,7 @@ body::before {
 .week-view { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .week-grid {
+  position: relative;
   display: grid;
   grid-template-columns: 48px repeat(7, minmax(0, 1fr));
   grid-template-rows: auto repeat(14, minmax(40px, 1fr));
@@ -2075,6 +2076,11 @@ body::before {
    ================================================================ */
 
 /* Week view now line */
+.wg-now-line-wrapper {
+  position: relative;
+  pointer-events: none;
+  z-index: 5;
+}
 .wg-now-line {
   position: absolute;
   left: 0;
@@ -2082,7 +2088,6 @@ body::before {
   height: 0;
   border-top: 1.5px solid rgba(239, 68, 68, 0.5);
   pointer-events: none;
-  z-index: 5;
 }
 .wg-now-line::before {
   content: "";
