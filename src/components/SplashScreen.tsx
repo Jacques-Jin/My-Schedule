@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getStoredTheme } from "../themes/loader";
+import splashText from "../splash-text.json";
 import "../splash.css";
 
 interface SplashScreenProps {
@@ -171,8 +172,8 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
           />
         </svg>
         <div className="splash-text">
-          <h1 className="splash-title">我的日程</h1>
-          <p className="splash-subtitle">My Schedule</p>
+          <h1 className="splash-title">{splashText.title || "我的日程"}</h1>
+          <p className="splash-subtitle">{splashText.subtitle || "My Schedule"}</p>
         </div>
       </div>
     </div>

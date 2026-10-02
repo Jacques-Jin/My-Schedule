@@ -1,6 +1,6 @@
 # My Schedule - 我的日程
 
-> **Runtime v61** · IndexedDB 离线优先持久化 · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言 · Dark Glass 深色主题 · Neo-Brutalism 新粗野主义 · Paper Terminal 纸面终端 · Android App (Capacitor 8) · 开屏动画「光迹 · Trace」
+> **Runtime v62** · IndexedDB 离线优先持久化 · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言 · Dark Glass 深色主题 · Neo-Brutalism 新粗野主义 · Paper Terminal 纸面终端 · Android App (Capacitor 8) · 开屏动画「光迹 · Trace」· 开屏文字可配置
 
 个人日程管理应用，支持课表导入、战役计划、调休标记等功能。
 
@@ -14,6 +14,15 @@
 ### 停止服务
 双击 `停止.bat`。
 
+### 启动器一览
+
+| 文件 | 作用 |
+| --- | --- |
+| `启动.bat` | 启动 Deno API(8000) + Vite(5173) + 打开浏览器（含端口占用守卫） |
+| `停止.bat` | 停止所有服务 |
+| `打开线上.bat` / `open-deployed.bat` | 打开线上版本 |
+| `set-splash-text.bat` | 启动「开屏文字编辑器」（http://127.0.0.1:5299/） |
+
 ### 手动启动
 ```bash
 # 终端 1：启动 API 服务器
@@ -24,6 +33,13 @@ npm run dev
 ```
 
 访问 http://127.0.0.1:5173/
+
+## 开屏文字配置
+
+开屏动画显示的主/副标题来自 `src/splash-text.json`（默认 `我的日程 / My Schedule`）。
+
+- 双击 `set-splash-text.bat` 打开本地编辑器，改字后点「保存」，或点「重置为默认」恢复。
+- 开发环境刷新页面即可生效；线上/APK 需重新构建（+部署/打包）后生效。
 
 ## 环境要求
 
@@ -41,6 +57,8 @@ my-schedule/
 │   │   ├── db.ts           # IndexedDB 封装层（14 stores）
 │   │   ├── sync.ts         # Write-behind 同步管理器
 │   │   └── api.ts          # Supabase REST API 客户端
+│   ├── splash.css          # 开屏动画样式
+│   └── splash-text.json    # 开屏文字配置（v62）
 ├── functions/              # 边缘函数（API 处理）
 │   ├── local-dev-index.ts  # 本地开发服务器
 │   ├── handler.mjs         # API 请求处理器
@@ -58,12 +76,14 @@ my-schedule/
 ├── scripts/                # 构建/开发脚本
 │   ├── build.mjs           # 生产构建
 │   ├── check-node.mjs      # Node 版本校验
+│   ├── splash-text-editor.mjs # 开屏文字本地编辑服务（v62）
 │   └── tools/              # 一次性工具
 ├── tests/                  # 自动化测试（phase1-10）
 ├── dev/                    # 开发工具
 ├── vendor/                 # 第三方 CSS（shadcn）
 ├── 启动.bat / 停止.bat      # 启动器
-└── open-deployed.bat       # 打开线上版本
+├── 打开线上.bat / open-deployed.bat  # 打开线上
+└── set-splash-text.bat     # 开屏文字编辑器启动器（v62）
 ```
 
 ## 开发说明
@@ -111,3 +131,9 @@ cd android && ./gradlew assembleRelease # 打签名 release APK
 - `capacitor.config.ts`：Capacitor 配置（appId、webDir、插件）
 - `android/keystore.properties`：签名配置（不入库）
 - `src/lib/config.ts`：运行时 API 基址切换（Web 相对路径 / 原生绝对地址）
+
+### 已知限制：系统状态栏 / 导航条
+
+部分国产 OEM 皮肤（实测 Android 15 / API 35）不允许应用改色或隐藏系统状态栏与底部导航条：
+edge-to-edge、`window.setNavigationBarColor` 均被系统忽略，`StatusBar.hide()` 仅隐藏图标并留下浅色空带。
+因此本应用**保持系统条原样**（基线），不再尝试原生改色；如需视觉统一，可在手机系统设置中切换深色模式。
