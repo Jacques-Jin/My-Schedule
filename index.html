@@ -11,6 +11,18 @@
         var t = localStorage.getItem('app-theme');
         if (t && t !== 'default') {
           document.documentElement.setAttribute('data-theme', t);
+          var files = {
+            'dark-glass': '/themes/dark-glass.css',
+            'neo-brutalism': '/themes/neo-brutalism.css',
+            'paper-terminal': '/themes/paper-terminal.css'
+          };
+          if (files[t]) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = files[t];
+            link.dataset.theme = t;
+            document.head.appendChild(link);
+          }
         }
       })();
     </script>

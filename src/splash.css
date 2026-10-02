@@ -303,6 +303,16 @@
    ================================================================ */
 
 /* Dark Glass — enhance glow */
+/* Theme CSS is linked lazily after data-ready, but the boot script sets
+   data-theme immediately; define the splash's own tokens here so its text
+   never renders light-theme ink on a dark splash background. */
+[data-theme="dark-glass"].splash-root {
+  --color-text: #f5f5f7;
+  --color-text-secondary: #b4b4c4;
+  --color-primary: #8b9cf0;
+  background: #10101c;
+}
+
 [data-theme="dark-glass"] .splash-root {
   background: #10101c;
 }
@@ -312,6 +322,13 @@
 }
 
 /* Neo Brutalism — hard edge, no glow */
+[data-theme="neo-brutalism"].splash-root {
+  --color-text: #000000;
+  --color-text-secondary: #444444;
+  --color-primary: #000000;
+  background: #fffef5;
+}
+
 [data-theme="neo-brutalism"] .splash-root {
   background: #fffef5;
 }
@@ -334,6 +351,13 @@
 }
 
 /* Paper Terminal — navy single color, no glow */
+[data-theme="paper-terminal"].splash-root {
+  --color-text: #2e3a8c;
+  --color-text-secondary: rgba(46, 58, 140, 0.65);
+  --color-primary: #2e3a8c;
+  background: #eae5d8;
+}
+
 [data-theme="paper-terminal"] .splash-root {
   background: #eae5d8;
 }
