@@ -41,6 +41,17 @@ npm run dev
 - 双击 `set-splash-text.bat` 打开本地编辑器，改字后点「保存」，或点「重置为默认」恢复。
 - 开发环境刷新页面即可生效；线上/APK 需重新构建（+部署/打包）后生效。
 
+## 本地独立版（免开发环境）
+
+`scripts/build-local-package.mjs` 将 `dist/` + 内置 Deno 运行时 + 单端口服务器
+打包为自包含文件夹 `output/MySchedule-Local/`（并压缩为 zip），拷到任意
+Windows 电脑双击 `启动本地版.bat` 即用，无需 Node/npm/Deno。
+
+- 单端口 `8100`：静态前端 + 内存假 Supabase API（与开发版同一 SEED）。
+- 数据存浏览器 IndexedDB（源 `127.0.0.1:8100`），**不与线上/APK 同步**，
+  与开发版（5173/8000）数据也互不相通。
+- 模板源在 `scripts/local-package/`；`output/` 不入库（.gitignore）。
+
 ## 环境要求
 
 - Node.js >= 22.12.0
@@ -77,6 +88,8 @@ my-schedule/
 │   ├── build.mjs           # 生产构建
 │   ├── check-node.mjs      # Node 版本校验
 │   ├── splash-text-editor.mjs # 开屏文字本地编辑服务（v62）
+│   ├── build-local-package.mjs # 本地独立版打包（v62）
+│   ├── local-package/      # 本地独立版模板（server/bat/README）
 │   └── tools/              # 一次性工具
 ├── tests/                  # 自动化测试（phase1-10）
 ├── dev/                    # 开发工具

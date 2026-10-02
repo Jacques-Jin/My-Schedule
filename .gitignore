@@ -17,3 +17,4 @@ android/app/src/main/res/raw/
 *.jks
 keystore.properties
 vibe_images/
+output/
