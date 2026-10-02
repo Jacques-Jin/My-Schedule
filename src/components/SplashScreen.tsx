@@ -7,21 +7,20 @@ interface SplashScreenProps {
   ready: boolean;
 }
 
-type SplashPhase = "entering" | "drawing" | "settling" | "highlight" | "poise" | "closing" | "holding" | "exiting" | "done";
+type SplashPhase = "entering" | "drawing" | "settling" | "highlight" | "poise" | "closing" | "done";
 
 // Timing constants (ms) — deliberately unhurried for a premium feel.
 // "entering" is a quiet blank beat (ambient bg only) so the animation eases in.
 // "poise" is a deliberate hold: wordmark fully set, ring gap still open,
 // giving the eye a beat to register the brand before the ring completes.
+// "closing" merges the ring completion and the fade-out into one 0.6s motion,
+// so the ending never drags: the gap closes exactly as the page dissolves.
 const DESKTOP_TIMING = {
   entering: 700,
   drawing: 1800,
   settling: 2200,
   highlight: 2600,
-  poise: 3200,
-  closing: 3650,
-  holding: 3850,
-  exiting: 4200,
+  poise: 3600,
   minDuration: 2800,
   maxDuration: 5000,
 };
@@ -31,10 +30,7 @@ const MOBILE_TIMING = {
   drawing: 1550,
   settling: 1900,
   highlight: 2250,
-  poise: 2750,
-  closing: 3150,
-  holding: 3350,
-  exiting: 3700,
+  poise: 3100,
   minDuration: 2400,
   maxDuration: 5000,
 };
@@ -83,29 +79,34 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
     schedule(() => setPhase("settling"), timing.drawing);
     schedule(() => setPhase("highlight"), timing.settling);
     schedule(() => setPhase("poise"), timing.highlight);
-    schedule(() => setPhase("closing"), timing.poise);
-    schedule(() => setPhase("holding"), timing.closing);
     schedule(() => {
       allowSkipRef.current = true;
     }, timing.poise);
 
-    // Exit condition: min duration met AND ready, OR max duration reached
+    // From the poise beat onward, begin the merged close+fade — but only once
+    // the app is ready (or the max duration forces it), so the splash never
+    // dissolves before there's something beneath it.
     const startTime = Date.now();
+    const beginClosing = () => {
+      if (skipRef.current) return;
+      skipRef.current = true;
+      setPhase("closing");
+      schedule(() => {
+        setPhase("done");
+        onFinishedRef.current();
+      }, 650);
+    };
     const checkExit = () => {
       if (skipRef.current) return;
       if (readyRef.current || Date.now() - startTime >= timing.maxDuration) {
-        setPhase("exiting");
-        schedule(() => {
-          setPhase("done");
-          onFinishedRef.current();
-        }, 700);
+        beginClosing();
       } else {
         // Not ready yet, check again in 100ms
         schedule(checkExit, 100);
       }
     };
 
-    schedule(checkExit, timing.holding);
+    schedule(checkExit, timing.poise);
 
     return () => {
       timersRef.current.forEach(clearTimeout);
@@ -117,15 +118,15 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
   // Skip handler
   useEffect(() => {
     const handleSkip = () => {
-      if (skipRef.current || !allowSkipRef.current || phase === "done" || phase === "exiting") return;
+      if (skipRef.current || !allowSkipRef.current || phase === "done" || phase === "closing") return;
       skipRef.current = true;
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
-      setPhase("exiting");
+      setPhase("closing");
       window.setTimeout(() => {
         setPhase("done");
         onFinished();
-      }, 700);
+      }, 650);
     };
 
     window.addEventListener("pointerdown", handleSkip);

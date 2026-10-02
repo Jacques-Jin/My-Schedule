@@ -101,8 +101,7 @@
 .splash-phase-settling .splash-arc,
 .splash-phase-highlight .splash-arc,
 .splash-phase-poise .splash-arc,
-.splash-phase-closing .splash-arc,
-.splash-phase-holding .splash-arc {
+.splash-phase-closing .splash-arc {
   animation: splash-draw-arc 1.1s ease forwards;
 }
 
@@ -124,16 +123,14 @@
 .splash-phase-settling .splash-container,
 .splash-phase-highlight .splash-container,
 .splash-phase-poise .splash-container,
-.splash-phase-closing .splash-container,
-.splash-phase-holding .splash-container {
+.splash-phase-closing .splash-container {
   animation: splash-spring-pulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .splash-phase-settling .splash-text,
 .splash-phase-highlight .splash-text,
 .splash-phase-poise .splash-text,
-.splash-phase-closing .splash-text,
-.splash-phase-holding .splash-text {
+.splash-phase-closing .splash-text {
   animation: splash-text-reveal 0.55s ease forwards;
   /* Visibility must not depend on the animation running: if a browser or
      WebView suppresses CSS animations, the plain opacity still shows text. */
@@ -143,16 +140,14 @@
 .splash-phase-settling .splash-title,
 .splash-phase-highlight .splash-title,
 .splash-phase-poise .splash-title,
-.splash-phase-closing .splash-title,
-.splash-phase-holding .splash-title {
+.splash-phase-closing .splash-title {
   animation: splash-letter-spacing 0.55s ease forwards;
 }
 
 .splash-phase-settling .splash-subtitle,
 .splash-phase-highlight .splash-subtitle,
 .splash-phase-poise .splash-subtitle,
-.splash-phase-closing .splash-subtitle,
-.splash-phase-holding .splash-subtitle {
+.splash-phase-closing .splash-subtitle {
   animation: splash-fade-in 0.4s ease 0.1s forwards;
   opacity: 1;
 }
@@ -160,8 +155,7 @@
 /* Phase: highlight (glass sweep) */
 .splash-phase-highlight .splash-title::after,
 .splash-phase-poise .splash-title::after,
-.splash-phase-closing .splash-title::after,
-.splash-phase-holding .splash-title::after {
+.splash-phase-closing .splash-title::after {
   content: "";
   position: absolute;
   top: 0;
@@ -178,30 +172,25 @@
   overflow: hidden;
 }
 
-/* Phase: closing (gap closes to full circle) */
-.splash-phase-closing .splash-arc,
-.splash-phase-holding .splash-arc {
-  animation: splash-close-gap 0.45s ease forwards;
-  stroke-dashoffset: 0;
-}
-
-/* Phase: exiting — graceful staged exit (root bg fades, wordmark lifts, ring scales) */
-.splash-phase-exiting {
+/* Phase: closing — gap closes to a full circle WHILE the whole splash
+   fades out. Both run together over 0.6s, so the ending never feels
+   drawn out: the ring completes and the page dissolves as one motion.
+   These rules come after the reveal groups above so they win the
+   cascade for the closing phase. */
+.splash-phase-closing {
   animation: splash-root-exit 0.6s ease forwards;
 }
 
-/* Hold the completed ring during exit so the mark fades with the root
-   instead of snapping back to its hidden base stroke-dashoffset. */
-.splash-phase-exiting .splash-arc {
-  animation: none !important;
-  stroke-dashoffset: 0 !important;
+.splash-phase-closing .splash-arc {
+  animation: splash-close-gap 0.6s ease forwards;
+  stroke-dashoffset: 0;
 }
 
-.splash-phase-exiting .splash-container {
+.splash-phase-closing .splash-container {
   animation: splash-exit 0.6s ease forwards;
 }
 
-.splash-phase-exiting .splash-text {
+.splash-phase-closing .splash-text {
   animation: splash-text-exit 0.6s ease forwards;
 }
 
@@ -445,9 +434,7 @@
     opacity: 1;
   }
 
-  /* Exit: keep only the opacity fade (no scale / lift motion) */
-  .splash-phase-exiting .splash-container,
-  .splash-phase-exiting .splash-text {
-    animation: none !important;
-  }
+  /* Closing: the reveal-group !important overrides above already suppress
+     the arc/container/text motion, leaving only the root opacity fade —
+     so the closing phase dissolves without any scale or lift. */
 }
