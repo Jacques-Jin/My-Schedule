@@ -1,0 +1,368 @@
+/* ============================================================
+   Splash Screen — 光迹 · Trace
+   Minimalist brand animation for app launch
+   ============================================================ */
+
+/* ---- Root Container ---- */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/* Ambient background blobs (low opacity, theme-aware) */
+.splash-root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(88, 86, 214, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% 25%, rgba(255, 159, 10, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 70% at 50% 85%, rgba(52, 199, 89, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 70% 60%, rgba(0, 122, 255, 0.08) 0%, transparent 50%);
+  opacity: 0;
+  animation: splash-fade-in 0.3s ease forwards;
+  pointer-events: none;
+}
+
+/* ---- Layout Container ---- */
+.splash-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  opacity: 0;
+  animation: splash-fade-in 0.2s ease forwards;
+}
+
+/* ---- Ring (SVG) ---- */
+.splash-ring {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+/* Arc drawing animation */
+.splash-arc {
+  stroke-dashoffset: 339.292;
+}
+
+/* Tip glow dot */
+.splash-tip {
+  filter: drop-shadow(0 0 4px var(--color-primary));
+}
+
+/* ---- Text Block ---- */
+.splash-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.splash-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.35em;
+  line-height: 1.2;
+}
+
+.splash-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0;
+}
+
+/* ================================================================
+   Phase Animations
+   ================================================================ */
+
+/* Phase: drawing (arc draws to 300°) */
+.splash-phase-drawing .splash-arc,
+.splash-phase-settling .splash-arc,
+.splash-phase-highlight .splash-arc,
+.splash-phase-closing .splash-arc,
+.splash-phase-holding .splash-arc {
+  animation: splash-draw-arc 0.8s ease forwards;
+}
+
+.splash-phase-drawing .splash-tip,
+.splash-phase-settling .splash-tip {
+  animation: splash-tip-follow 0.8s ease forwards;
+}
+
+/* Phase: settling (spring pulse + wordmark reveal) */
+.splash-phase-settling .splash-container,
+.splash-phase-highlight .splash-container,
+.splash-phase-closing .splash-container,
+.splash-phase-holding .splash-container {
+  animation: splash-spring-pulse 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.splash-phase-settling .splash-text,
+.splash-phase-highlight .splash-text,
+.splash-phase-closing .splash-text,
+.splash-phase-holding .splash-text {
+  animation: splash-text-reveal 0.4s ease forwards;
+}
+
+.splash-phase-settling .splash-title,
+.splash-phase-highlight .splash-title,
+.splash-phase-closing .splash-title,
+.splash-phase-holding .splash-title {
+  animation: splash-letter-spacing 0.4s ease forwards;
+}
+
+.splash-phase-settling .splash-subtitle,
+.splash-phase-highlight .splash-subtitle,
+.splash-phase-closing .splash-subtitle,
+.splash-phase-holding .splash-subtitle {
+  animation: splash-fade-in 0.3s ease 0.1s forwards;
+}
+
+/* Phase: highlight (glass sweep) */
+.splash-phase-highlight .splash-title::after,
+.splash-phase-closing .splash-title::after,
+.splash-phase-holding .splash-title::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: splash-glass-sweep 0.3s ease forwards;
+  pointer-events: none;
+}
+
+.splash-title {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Phase: closing (gap closes to full circle) */
+.splash-phase-closing .splash-arc,
+.splash-phase-holding .splash-arc {
+  animation: splash-close-gap 0.3s ease forwards;
+}
+
+/* Phase: exiting (scale up + fade out) */
+.splash-phase-exiting .splash-container {
+  animation: splash-exit 0.2s ease forwards;
+}
+
+/* ================================================================
+   Keyframes
+   ================================================================ */
+
+@keyframes splash-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Arc draws from full offset to 300° (leaves 60° gap) */
+/* circumference = 2 * PI * 54 ≈ 339.292 */
+/* 300° = 339.292 * (300/360) ≈ 282.743 drawn, offset = 339.292 - 282.743 = 56.549 */
+@keyframes splash-draw-arc {
+  from { stroke-dashoffset: 339.292; }
+  to { stroke-dashoffset: 56.549; }
+}
+
+/* Tip follows arc end (rotates around center) */
+@keyframes splash-tip-follow {
+  0% {
+    opacity: 0;
+    transform: rotate(-90deg) translate(54px) rotate(90deg);
+  }
+  10% { opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: rotate(210deg) translate(54px) rotate(-210deg);
+  }
+}
+
+/* Spring pulse on container */
+@keyframes splash-spring-pulse {
+  0% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+/* Text reveal (fade up) */
+@keyframes splash-text-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Letter spacing narrows */
+@keyframes splash-letter-spacing {
+  from { letter-spacing: 0.35em; }
+  to { letter-spacing: 0.02em; }
+}
+
+/* Glass highlight sweep */
+@keyframes splash-glass-sweep {
+  from { left: -100%; }
+  to { left: 200%; }
+}
+
+/* Gap closes (arc completes to full circle) */
+@keyframes splash-close-gap {
+  from { stroke-dashoffset: 56.549; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Exit: scale up + fade out */
+@keyframes splash-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+/* ================================================================
+   Mobile Layout (vertical stack)
+   ================================================================ */
+
+@media (max-width: 767px) {
+  .splash-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .splash-ring {
+    width: 88px;
+    height: 88px;
+  }
+
+  .splash-title {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .splash-subtitle {
+    display: none;
+  }
+}
+
+/* ================================================================
+   Theme Overrides
+   ================================================================ */
+
+/* Dark Glass — enhance glow */
+[data-theme="dark-glass"] .splash-root {
+  background: #10101c;
+}
+
+[data-theme="dark-glass"] .splash-tip {
+  filter: drop-shadow(0 0 8px rgba(139, 156, 240, 0.8));
+}
+
+/* Neo Brutalism — hard edge, no glow */
+[data-theme="neo-brutalism"] .splash-root {
+  background: #fffef5;
+}
+
+[data-theme="neo-brutalism"] .splash-arc {
+  stroke: #000 !important;
+}
+
+[data-theme="neo-brutalism"] .splash-tip {
+  fill: #000 !important;
+  filter: none !important;
+}
+
+[data-theme="neo-brutalism"] .splash-title::after {
+  display: none;
+}
+
+[data-theme="neo-brutalism"] .splash-title {
+  font-weight: 700;
+}
+
+/* Paper Terminal — navy single color, no glow */
+[data-theme="paper-terminal"] .splash-root {
+  background: #eae5d8;
+}
+
+[data-theme="paper-terminal"] .splash-arc {
+  stroke: #2e3a8c !important;
+}
+
+[data-theme="paper-terminal"] .splash-tip {
+  fill: #2e3a8c !important;
+  filter: none !important;
+}
+
+[data-theme="paper-terminal"] .splash-title::after {
+  display: none;
+}
+
+[data-theme="paper-terminal"] .splash-title {
+  font-family: "DotGothic16", monospace;
+}
+
+/* ================================================================
+   Reduced Motion
+   ================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-root::before,
+  .splash-container,
+  .splash-arc,
+  .splash-tip,
+  .splash-text,
+  .splash-title,
+  .splash-subtitle {
+    animation: none !important;
+  }
+
+  .splash-root::before {
+    opacity: 1;
+  }
+
+  .splash-container {
+    opacity: 1;
+  }
+
+  .splash-arc {
+    stroke-dashoffset: 0 !important;
+  }
+
+  .splash-tip {
+    opacity: 0 !important;
+  }
+
+  .splash-text {
+    opacity: 1;
+    transform: none;
+  }
+
+  .splash-title {
+    letter-spacing: 0.02em;
+  }
+
+  .splash-subtitle {
+    opacity: 1;
+  }
+}

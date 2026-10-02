@@ -10,6 +10,7 @@ import SettingsPage from "./pages/SettingsPage";
 import HomeworkPage from "./pages/HomeworkPage";
 import ReminderBanner from "./components/ReminderBanner";
 import SyncIndicator from "./components/SyncIndicator";
+import SplashScreen from "./components/SplashScreen";
 import { applyTheme, getStoredTheme } from "./themes/loader";
 import { initSync } from "./lib/sync";
 import "./styles.css";
@@ -30,6 +31,7 @@ const pages: Record<string, () => ReactNode> = {
 
 function AppInner() {
   const [page, setPage] = useState(getHashPage);
+  const [showSplash, setShowSplash] = useState(true);
   const { state, seedIfEmpty } = useStore();
 
   useEffect(() => {
@@ -52,6 +54,7 @@ function AppInner() {
 
   return (
     <div className="app-shell">
+      {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} ready={state.status === "ready"} />}
       <Toaster theme="dark" position="top-center" closeButton />
       <SyncIndicator />
       <ReminderBanner />
