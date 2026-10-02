@@ -1,6 +1,6 @@
 # My Schedule - 我的日程
 
-> **Runtime v54** · IndexedDB 离线优先持久化 · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言 · Dark Glass 深色主题 · Neo-Brutalism 新粗野主义 · Paper Terminal 纸面终端 · Android App (Capacitor 8)
+> **Runtime v55** · IndexedDB 离线优先持久化 · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言 · Dark Glass 深色主题 · Neo-Brutalism 新粗野主义 · Paper Terminal 纸面终端 · Android App (Capacitor 8)
 
 个人日程管理应用，支持课表导入、战役计划、调休标记等功能。
 
