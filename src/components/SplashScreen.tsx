@@ -7,31 +7,36 @@ interface SplashScreenProps {
   ready: boolean;
 }
 
-type SplashPhase = "entering" | "drawing" | "settling" | "highlight" | "closing" | "holding" | "exiting" | "done";
+type SplashPhase = "entering" | "drawing" | "settling" | "highlight" | "poise" | "closing" | "holding" | "exiting" | "done";
 
-// Timing constants (ms)
+// Timing constants (ms) — deliberately unhurried for a premium feel.
+// "entering" is a quiet blank beat (ambient bg only) so the animation eases in.
+// "poise" is a deliberate hold: wordmark fully set, ring gap still open,
+// giving the eye a beat to register the brand before the ring completes.
 const DESKTOP_TIMING = {
-  entering: 200,
-  drawing: 950,
-  settling: 1150,
-  highlight: 1450,
-  closing: 1600,
-  holding: 1750,
-  exiting: 1900,
-  minDuration: 1200,
-  maxDuration: 2500,
+  entering: 700,
+  drawing: 1800,
+  settling: 2200,
+  highlight: 2600,
+  poise: 3200,
+  closing: 3650,
+  holding: 3850,
+  exiting: 4200,
+  minDuration: 2800,
+  maxDuration: 5000,
 };
 
 const MOBILE_TIMING = {
-  entering: 150,
-  drawing: 700,
-  settling: 880,
-  highlight: 1050,
-  closing: 1180,
-  holding: 1300,
-  exiting: 1400,
-  minDuration: 900,
-  maxDuration: 2500,
+  entering: 600,
+  drawing: 1550,
+  settling: 1900,
+  highlight: 2250,
+  poise: 2750,
+  closing: 3150,
+  holding: 3350,
+  exiting: 3700,
+  minDuration: 2400,
+  maxDuration: 5000,
 };
 
 export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
@@ -40,6 +45,9 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const timersRef = useRef<number[]>([]);
   const skipRef = useRef(false);
+  // Stray pointerdown/keydown can arrive right after WebView boot; ignoring
+  // input until the poise beat keeps them from killing the brand moment.
+  const allowSkipRef = useRef(false);
 
   useEffect(() => {
     setTheme(getStoredTheme());
@@ -53,10 +61,19 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
 
   const timing = isMobile ? MOBILE_TIMING : DESKTOP_TIMING;
 
-  // Phase state machine
+  const readyRef = useRef(ready);
   useEffect(() => {
-    if (skipRef.current) return;
+    readyRef.current = ready;
+  }, [ready]);
 
+  const onFinishedRef = useRef(onFinished);
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
+
+  // Phase state machine — scheduled once on mount. Re-arming on prop changes
+  // would reset in-flight timers and scramble the timeline.
+  useEffect(() => {
     const schedule = (fn: () => void, delay: number) => {
       const id = window.setTimeout(fn, delay);
       timersRef.current.push(id);
@@ -65,37 +82,42 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
     schedule(() => setPhase("drawing"), timing.entering);
     schedule(() => setPhase("settling"), timing.drawing);
     schedule(() => setPhase("highlight"), timing.settling);
-    schedule(() => setPhase("closing"), timing.highlight);
+    schedule(() => setPhase("poise"), timing.highlight);
+    schedule(() => setPhase("closing"), timing.poise);
     schedule(() => setPhase("holding"), timing.closing);
+    schedule(() => {
+      allowSkipRef.current = true;
+    }, timing.poise);
 
     // Exit condition: min duration met AND ready, OR max duration reached
+    const startTime = Date.now();
     const checkExit = () => {
       if (skipRef.current) return;
-      if (ready || Date.now() - startTime >= timing.maxDuration) {
+      if (readyRef.current || Date.now() - startTime >= timing.maxDuration) {
         setPhase("exiting");
         schedule(() => {
           setPhase("done");
-          onFinished();
-        }, 200);
+          onFinishedRef.current();
+        }, 700);
       } else {
         // Not ready yet, check again in 100ms
         schedule(checkExit, 100);
       }
     };
 
-    const startTime = Date.now();
     schedule(checkExit, timing.holding);
 
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
-  }, [timing, onFinished, ready]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Skip handler
   useEffect(() => {
     const handleSkip = () => {
-      if (skipRef.current || phase === "done" || phase === "exiting") return;
+      if (skipRef.current || !allowSkipRef.current || phase === "done" || phase === "exiting") return;
       skipRef.current = true;
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
@@ -103,7 +125,7 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
       window.setTimeout(() => {
         setPhase("done");
         onFinished();
-      }, 200);
+      }, 700);
     };
 
     window.addEventListener("pointerdown", handleSkip);
@@ -117,8 +139,8 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
   const themeAttr = theme === "default" ? undefined : theme;
 
   return (
-    <div className="splash-root" data-theme={themeAttr} aria-hidden="true" role="presentation">
-      <div className={`splash-container splash-phase-${phase}`}>
+    <div className={`splash-root splash-phase-${phase}`} data-theme={themeAttr} aria-hidden="true" role="presentation">
+      <div className="splash-container">
         <svg className="splash-ring" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
