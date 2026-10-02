@@ -71,7 +71,7 @@
   background: rgba(0, 0, 0, 0.5);
 }
 [data-theme="dark-glass"] .sheet-panel {
-  background: rgba(22, 22, 32, 0.82);
+  background: rgba(22, 22, 32, 0.88);
   box-shadow: var(--glass-highlight), 0 -8px 40px rgba(0, 0, 0, 0.4);
 }
 [data-theme="dark-glass"] .sheet-close {
