@@ -27,12 +27,14 @@ mkdirSync(path.join(PKG, "deno"), { recursive: true });
 cpSync(path.join(ROOT, "dist"), path.join(PKG, "app"), { recursive: true });
 cpSync(path.join(ROOT, "functions", "handler.mjs"), path.join(PKG, "server", "handler.mjs"));
 cpSync(path.join(TPL, "server.ts"), path.join(PKG, "server", "server.ts"));
+cpSync(path.join(ROOT, "scripts", "splash-text-editor.mjs"), path.join(PKG, "server", "splash-text-editor.mjs"));
 cpSync(DENO_SRC, path.join(PKG, "deno", "deno.exe"));
 cpSync(path.join(TPL, "启动本地版.bat"), path.join(PKG, "启动本地版.bat"));
 cpSync(path.join(TPL, "stop-local.bat"), path.join(PKG, "stop-local.bat"));
+cpSync(path.join(TPL, "开屏文字编辑.bat"), path.join(PKG, "开屏文字编辑.bat"));
 cpSync(path.join(TPL, "README.txt"), path.join(PKG, "README.txt"));
 
-const zip = path.join(OUT, "我的日程-本地版-v62.zip");
+const zip = path.join(OUT, "我的日程-本地版-v63.zip");
 rmSync(zip, { force: true });
 execFileSync("powershell", [
   "-NoProfile", "-Command",

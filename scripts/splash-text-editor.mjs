@@ -1,19 +1,19 @@
-// Splash text editor — a tiny zero-dependency local tool.
-// Launch via set-splash-text.bat (or: node scripts/splash-text-editor.mjs).
-// Serves a small form on http://127.0.0.1:5199/ that rewrites
-// src/splash-text.json, which the splash screen reads at build/dev time.
-import http from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { exec } from "node:child_process";
+// Splash text editor — a tiny zero-dependency local tool (runs on Deno).
+// Launch via set-splash-text.bat (or: deno run -A scripts/splash-text-editor.mjs).
+// Serves a small form on http://127.0.0.1:5299/ that rewrites
+// public/splash-text.json, which the splash screen fetches at runtime.
+// Env overrides (used by the packaged local edition):
+//   SPLASH_EDITOR_PORT, SPLASH_TEXT_CONFIG
 
-const PORT = 5299;
-const CONFIG_PATH = fileURLToPath(new URL("../src/splash-text.json", import.meta.url));
+const PORT = Number(Deno.env.get("SPLASH_EDITOR_PORT") || 5299);
+const CONFIG_URL = Deno.env.get("SPLASH_TEXT_CONFIG")
+  ? Deno.env.get("SPLASH_TEXT_CONFIG")
+  : new URL("../public/splash-text.json", import.meta.url);
 const DEFAULTS = { title: "我的日程", subtitle: "My Schedule" };
 
 async function readConfig() {
   try {
-    const raw = await readFile(CONFIG_PATH, "utf8");
+    const raw = await Deno.readTextFile(CONFIG_URL);
     const parsed = JSON.parse(raw);
     return {
       title: typeof parsed.title === "string" ? parsed.title : DEFAULTS.title,
@@ -25,16 +25,7 @@ async function readConfig() {
 }
 
 async function writeConfig(cfg) {
-  await writeFile(CONFIG_PATH, JSON.stringify(cfg, null, 2) + "\n", "utf8");
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", (c) => { data += c; if (data.length > 1e6) req.destroy(); });
-    req.on("end", () => resolve(data));
-    req.on("error", reject);
-  });
+  await Deno.writeTextFile(CONFIG_URL, JSON.stringify(cfg, null, 2) + "\n");
 }
 
 const PAGE = (cfg) => `<!doctype html>
@@ -60,7 +51,7 @@ const PAGE = (cfg) => `<!doctype html>
 <body>
   <div class="card">
     <h1>开屏文字编辑器</h1>
-    <p class="hint">修改网页端开屏动画的显示文字，保存后刷新开发服务器或重新构建即可生效。</p>
+    <p class="hint">修改开屏动画的显示文字，保存后刷新页面即生效（开发版 / 本地独立版）。</p>
     <label for="title">主标题</label>
     <input id="title" value="${cfg.title.replace(/"/g, "&quot;")}" />
     <label for="subtitle">副标题</label>
@@ -85,42 +76,40 @@ const PAGE = (cfg) => `<!doctype html>
 </body>
 </html>`;
 
-const server = http.createServer(async (req, res) => {
-  const url = req.url || "/";
-  if (req.method === "GET" && url === "/") {
+Deno.serve({ port: PORT, hostname: "127.0.0.1" }, async (req) => {
+  const url = new URL(req.url);
+  const json = (obj, status = 200) =>
+    new Response(JSON.stringify(obj), {
+      status,
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
+
+  if (req.method === "GET" && url.pathname === "/") {
     const cfg = await readConfig();
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(PAGE(cfg));
-    return;
+    return new Response(PAGE(cfg), { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
-  if (req.method === "POST" && (url === "/save" || url === "/reset")) {
+  if (req.method === "POST" && (url.pathname === "/save" || url.pathname === "/reset")) {
     try {
       let cfg;
-      if (url === "/reset") {
+      if (url.pathname === "/reset") {
         cfg = { ...DEFAULTS };
       } else {
-        const body = JSON.parse(await readBody(req) || "{}");
+        const body = JSON.parse((await req.text()) || "{}");
         cfg = {
           title: String(body.title ?? DEFAULTS.title).slice(0, 40),
           subtitle: String(body.subtitle ?? DEFAULTS.subtitle).slice(0, 60),
         };
       }
       await writeConfig(cfg);
-      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ ok: true, ...cfg }));
+      return json({ ok: true, ...cfg });
     } catch (e) {
-      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ ok: false, error: String(e && e.message || e) }));
+      return json({ ok: false, error: String((e && e.message) || e) }, 400);
     }
-    return;
   }
-  res.writeHead(404, { "Content-Type": "text/plain" });
-  res.end("not found");
+  return new Response("not found", { status: 404 });
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`Splash text editor running at http://127.0.0.1:${PORT}/`);
-  if (process.platform === "win32") {
-    exec(`start "" http://127.0.0.1:${PORT}/`);
-  }
-});
+console.log(`Splash text editor running at http://127.0.0.1:${PORT}/`);
+if (Deno.build.os === "windows") {
+  new Deno.Command("cmd", { args: ["/c", "start", "", `http://127.0.0.1:${PORT}/`] }).spawn();
+}

@@ -1,6 +1,6 @@
 # My Schedule - 我的日程
 
-> **Runtime v62** · IndexedDB 离线优先持久化 · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言 · Dark Glass 深色主题 · Neo-Brutalism 新粗野主义 · Paper Terminal 纸面终端 · Android App (Capacitor 8) · 开屏动画「光迹 · Trace」· 开屏文字可配置
+> **Runtime v63** · IndexedDB 离线优先持久化 · Liquid Glass 视觉系统 · macOS 液态玻璃设计语言 · Dark Glass 深色主题 · Neo-Brutalism 新粗野主义 · Paper Terminal 纸面终端 · Android App (Capacitor 8) · 开屏动画「光迹 · Trace」· 开屏文字可配置
 
 个人日程管理应用，支持课表导入、战役计划、调休标记等功能。
 
@@ -36,10 +36,12 @@ npm run dev
 
 ## 开屏文字配置
 
-开屏动画显示的主/副标题来自 `src/splash-text.json`（默认 `我的日程 / My Schedule`）。
+开屏动画显示的主/副标题来自 `public/splash-text.json`（默认 `我的日程 / My Schedule`），
+开屏时运行时 fetch（`cache: no-store`），失败回退内置默认——**保存后刷新页面即生效**，
+无需重新构建（开发版、本地独立版、线上站点均如此；APK 资源只读除外）。
 
-- 双击 `set-splash-text.bat` 打开本地编辑器，改字后点「保存」，或点「重置为默认」恢复。
-- 开发环境刷新页面即可生效；线上/APK 需重新构建（+部署/打包）后生效。
+- 双击 `set-splash-text.bat` 打开本地编辑器（http://127.0.0.1:5299/），改字后点「保存」，或点「重置为默认」恢复。
+- 本地独立版包内自带 `开屏文字编辑.bat`（端口 5399，改包内 `app/splash-text.json`）。
 
 ## 本地独立版（免开发环境）
 
@@ -69,7 +71,8 @@ my-schedule/
 │   │   ├── sync.ts         # Write-behind 同步管理器
 │   │   └── api.ts          # Supabase REST API 客户端
 │   ├── splash.css          # 开屏动画样式
-│   └── splash-text.json    # 开屏文字配置（v62）
+├── public/
+│   └── splash-text.json    # 开屏文字配置（v63 运行时加载）
 ├── functions/              # 边缘函数（API 处理）
 │   ├── local-dev-index.ts  # 本地开发服务器
 │   ├── handler.mjs         # API 请求处理器

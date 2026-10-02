@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { getStoredTheme } from "../themes/loader";
-import splashText from "../splash-text.json";
 import "../splash.css";
+
+const DEFAULT_SPLASH_TEXT = { title: "我的日程", subtitle: "My Schedule" };
 
 interface SplashScreenProps {
   onFinished: () => void;
@@ -40,6 +41,7 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
   const [theme, setTheme] = useState("default");
   const [phase, setPhase] = useState<SplashPhase>("entering");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [splashText, setSplashText] = useState(DEFAULT_SPLASH_TEXT);
   const timersRef = useRef<number[]>([]);
   const skipRef = useRef(false);
   // Stray pointerdown/keydown can arrive right after WebView boot; ignoring
@@ -48,6 +50,27 @@ export default function SplashScreen({ onFinished, ready }: SplashScreenProps) {
 
   useEffect(() => {
     setTheme(getStoredTheme());
+  }, []);
+
+  // Runtime splash text: /splash-text.json ships next to index.html (dev,
+  // packaged local edition, deployed site, APK assets). Fetched with no-store
+  // so editor saves show on the next reload; on any failure the bundled
+  // defaults above keep the splash intact. Resolves long before the title
+  // fades in (settling beat >= 1.55s), so no visible swap.
+  useEffect(() => {
+    let alive = true;
+    fetch("/splash-text.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!alive || !j || typeof j !== "object") return;
+        const title = typeof j.title === "string" && j.title.trim() ? j.title.slice(0, 40) : DEFAULT_SPLASH_TEXT.title;
+        const subtitle = typeof j.subtitle === "string" ? j.subtitle.slice(0, 60) : DEFAULT_SPLASH_TEXT.subtitle;
+        setSplashText({ title, subtitle });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
